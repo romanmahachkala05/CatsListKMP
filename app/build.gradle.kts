@@ -6,8 +6,6 @@ plugins {
     // Still needed after CatDto moved out: the NavKeys are @Serializable too, and without
     // the plugin that fails at runtime rather than at compile time.
     alias(libs.plugins.kotlin.serialization)
-    alias(libs.plugins.ksp)
-    alias(libs.plugins.hilt.android)
     id("catslist.quality")
 }
 
@@ -64,6 +62,8 @@ android {
     }
     buildFeatures {
         compose = true
+        // App.kt gates Koin's reflective logger on DEBUG.
+        buildConfig = true
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -106,10 +106,10 @@ dependencies {
     implementation(libs.androidx.navigation3.runtime)
     implementation(libs.androidx.navigation3.ui)
     implementation(libs.androidx.lifecycle.viewmodel.navigation3)
-    // Hilt — MainActivity/App are @AndroidEntryPoint/@HiltAndroidApp; the ViewModels
-    // themselves, and hiltViewModel(), now live in the feature modules.
-    implementation(libs.hilt.android)
-    ksp(libs.hilt.android.compiler)
+    // Koin — App assembles the module graph; the ViewModel definitions themselves live
+    // in the feature modules.
+    implementation(platform(libs.koin.bom))
+    implementation(libs.koin.android)
 
     testImplementation(project(":core:testing"))
     testImplementation(libs.junit)

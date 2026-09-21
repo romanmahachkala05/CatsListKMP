@@ -5,18 +5,14 @@ import android.content.Context
 import android.os.Environment
 import androidx.core.net.toUri
 import com.example.catslist.core.data.R
-import com.example.catslist.data.di.CatsListDispatcher
-import com.example.catslist.data.di.Dispatcher
 import com.example.catslist.domain.ImageDownloader
-import dagger.hilt.android.qualifiers.ApplicationContext
-import javax.inject.Inject
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
 
 /** Kicks off a system download of a cat image. The one place that talks to [DownloadManager]. */
-class CatImageDownloader @Inject constructor(
-    @param:ApplicationContext private val context: Context,
-    @param:Dispatcher(CatsListDispatcher.IO) private val ioDispatcher: CoroutineDispatcher,
+class CatImageDownloader(
+    private val context: Context,
+    private val ioDispatcher: CoroutineDispatcher,
 ) : ImageDownloader {
 
     override suspend fun download(url: String, id: String) = withContext(ioDispatcher) {

@@ -1,7 +1,7 @@
 plugins {
     id("catslist.android.library")
     id("catslist.compose")
-    id("catslist.hilt")
+    id("catslist.koin")
     // FavoriteCatsNavKey is @Serializable, for Navigation 3's saved-state support.
     alias(libs.plugins.kotlin.serialization)
 }
@@ -22,10 +22,9 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)
-    implementation(libs.androidx.hilt.lifecycle.viewmodel.compose)
+    implementation(libs.koin.androidx.compose)
     implementation(libs.androidx.navigation3.runtime)
     implementation(libs.kotlinx.collections.immutable)
-    ksp(libs.androidx.hilt.compiler)
 
     testImplementation(project(":core:testing"))
     testImplementation(libs.junit)

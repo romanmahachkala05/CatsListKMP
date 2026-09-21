@@ -13,15 +13,15 @@ before changing the architecture. This file is the *what*; `AGENTS.md` is the
 ## 1. Stack
 
 - **Kotlin** (latest stable), **Jetpack Compose** (BOM), **Coroutines + Flow**.
-- **Hilt** for DI, **Navigation 3** for navigation, **Room** for local persistence
+- **Koin** for DI, **Navigation 3** for navigation, **Room** for local persistence
   (only if the app needs a database).
 - **All dependency versions live in `gradle/libs.versions.toml`.** Never write a
   version string in a `build.gradle.kts`. Verify each version is the current
   stable before starting; the catalog is the single source of truth.
 
 Known-good set (as of 2026‑09 — verify current): Kotlin 2.4.x, KSP 2.3.x,
-AGP 9.x, Gradle 9.7.x, Compose BOM 2026.08.x, Hilt (Dagger) 2.60.x,
-androidx.hilt 1.4.x, Room 2.8.x, androidx.navigation3 1.1.x,
+AGP 9.x, Gradle 9.7.x, Compose BOM 2026.08.x, Koin 4.1.x,
+Room 2.8.x, androidx.navigation3 1.1.x,
 lifecycle 2.11.x, coroutines 1.11.x, kotlinx-serialization 1.11.x,
 kotlinx.collections.immutable (latest), Truth 1.4.x.
 
@@ -56,19 +56,19 @@ Module graph (arrows = "depends on"):
 Rules:
 
 - `:core:model` is a pure-Kotlin library module: no Android SDK, Compose, Room
-  or Hilt on its classpath, checked by construction (its convention plugin
+  or Koin on its classpath, checked by construction (its convention plugin
   declares none of them).
 - **A `:feature:*` module MUST NOT depend on another `:feature:*` module.**
   Cross-feature navigation goes through `() -> Unit` callbacks (or a
   `Navigator` interface) wired by `:app`; shared logic goes in `:core:*`.
 - **Each `:feature:*` module exposes exactly two public things: its `NavKey`
   and one entry `@Composable`.** Everything else — ViewModel, StateHolder,
-  ErrorHandler, `XxxContract`, the Hilt `@Binds` module, the stateless
+  ErrorHandler, `XxxContract`, the Koin `Module`, the stateless
   `XxxContent` — is `internal`, enforced by the compiler. A public
   `@Composable` cannot take an `internal` type as a parameter (this is a
   compiler error, not a warning), so the public `XxxScreen(modifier, contentPadding)`
   delegates to a `private` overload that takes the `internal` ViewModel; that
-  private overload is where `hiltViewModel()`'s default lives.
+  private overload is where `koinViewModel()`'s default lives.
 - `:app` is the **composition root only**: `Application`, `MainActivity`, the
   `NavDisplay` and its back stack. No screens, ViewModels, use cases, entities
   or feature-specific DI modules.
@@ -90,12 +90,12 @@ Rules:
   module boundary.
 - Shared build config lives in the `build-logic` composite build as
   **convention plugins**: `catslist.jvm.library` and `catslist.android.library`
-  are the two bases; `catslist.compose`, `catslist.hilt`, and `catslist.quality`
+  are the two bases; `catslist.compose`, `catslist.koin`, and `catslist.quality`
   (ktlint + detekt) are additive, applied only by the modules that actually
   need them. Never copy an `android { }` block between modules.
 - **A module that declares a `@Serializable` type (a feature module's
   `NavKey`) needs `kotlin.plugin.serialization` applied directly — it does not
-  come for free from `catslist.hilt` or any other convention plugin.** Missing
+  come for free from `catslist.koin` or any other convention plugin.** Missing
   it compiles cleanly and crashes only when something actually looks up the
   serializer at runtime (i.e. on first navigation to that screen). This bit
   twice during the ADR-0022 migration; check it explicitly when a new feature
@@ -109,7 +109,7 @@ Rules:
   so a consumer needs those types too — `:core:testing` exposes `:core:model`,
   `:core:data`, and `:core:ui` as `api`.
 - Everything else is `implementation`.
-- `:core:data` exposes Hilt `@Binds`/`@Provides` methods and use cases
+- `:core:data` exposes `dataModule` and use cases
   wrapping its own repository, so almost all its dependencies are
   `implementation` — the one exception is `androidx.paging:paging-runtime`,
   `api` because `CatRepository.feed` returns `Flow<PagingData<Cat>>` and
@@ -134,8 +134,8 @@ load; `PagingData` is exposed alongside `state` rather than inside it, because
 | --- | --- |
 | `XxxContract.kt` | `XxxState` (immutable), `XxxEvent` (sealed — all user intents) |
 | `XxxStateHolder.kt` | `IXxxStateHolder` + impl — owns the `MutableStateFlow`, exposes intent-named mutators (§3a) |
-| `XxxViewModel.kt` | `@HiltViewModel` — thin orchestrator (§3b) |
-| `XxxScreen.kt` | stateless `XxxContent(state, onEvent)` + thin `hiltViewModel()` entry (§7) |
+| `XxxViewModel.kt` | thin orchestrator, registered in the feature's Koin module (§3b) |
+| `XxxScreen.kt` | stateless `XxxContent(state, onEvent)` + thin `koinViewModel()` entry (§7) |
 | `XxxErrorHandler.kt` | `IXxxErrorHandler` + impl — maps failures to state / notifications (§3c) |
 | `XxxUiMapper.kt` *(if the screen renders a list/sections)* | domain model → UI model |
 | `XxxDialogFactory.kt` *(if the screen shows dialogs)* | builds `DialogModel` from a sealed `DialogType` (§3d) |
@@ -205,7 +205,7 @@ load; `PagingData` is exposed alongside `state` rather than inside it, because
 
 ### 3b. ViewModel — thin orchestrator
 
-- `@HiltViewModel`, delegates state via `by stateHolder`, contains **no** state
+- Registered in the feature's Koin module, delegates state via `by stateHolder`, contains **no** state
   mutation and **no** error branching.
 - One **typed event entry point**: `fun onEvent(event: XxxEvent)` over a sealed
   `XxxEvent`. (For click-heavy screens, route events through a shared
@@ -217,7 +217,6 @@ load; `PagingData` is exposed alongside `state` rather than inside it, because
   `telemetry` (analytics + crash/trace), `errorHandler`, plus the use case(s)
   and the state holder.
 
-      @HiltViewModel
       class XxxViewModel @Inject constructor(
           private val stateHolder: IXxxStateHolder,
           private val errorHandler: IXxxErrorHandler,
@@ -325,18 +324,19 @@ load; `PagingData` is exposed alongside `state` rather than inside it, because
   whose impl is in `:app`). A feature never references another feature's key and
   never builds the graph.
 - **Screen arguments** — Navigation 3 does **not** route args through
-  `SavedStateHandle`. Use Hilt assisted injection:
+  `SavedStateHandle`. Use Koin's injected parameters — the whole of what Hilt
+  needed `@AssistedInject` + an `@AssistedFactory` interface for:
 
-      @HiltViewModel(assistedFactory = XxxViewModel.Factory::class)
-      class XxxViewModel @AssistedInject constructor(
-          @Assisted private val id: Long,
+      class XxxViewModel(
+          private val id: Long,
           …
-      ) : ViewModel() {
-          @AssistedFactory interface Factory { fun create(id: Long): XxxViewModel }
-      }
+      ) : ViewModel()
+
+      // in the feature's Koin module:
+      viewModel { (id: Long) -> XxxViewModel(id = id, …) }
 
       // in the NavDisplay entry:
-      val vm = hiltViewModel<XxxViewModel, XxxViewModel.Factory> { it.create(key.id) }
+      val vm = koinViewModel<XxxViewModel> { parametersOf(key.id) }
 
   Pass a plain value, not the `NavKey` type, so the ViewModel stays free of
   navigation types.
@@ -345,25 +345,31 @@ load; `PagingData` is exposed alongside `state` rather than inside it, because
 
 ---
 
-## 6. Hilt
+## 6. Koin
 
-- Each module owns its own DI. `@InstallIn(SingletonComponent::class)` modules are
-  aggregated across all modules automatically — **no "bridge" module needed**.
-- **domain never applies Hilt.** Use cases use plain `@Inject constructor`
-  (JSR-330); the downstream module's Hilt processes them.
-- `@HiltViewModel` on ViewModels; `@Binds` for interface ← impl; `@Provides` for
-  types you don't own (Room DB/DAO, Retrofit).
-- Screen collaborators that **hold state** (StateHolder) or must **share** a state
-  holder (ErrorHandler) are **`@ViewModelScoped`**.
-- Apply Hilt through the convention plugin in multi-module setups, never by hand
-  per module.
+- Each module owns its own DI as a `Module` value — `dataModule`, `uiModule`,
+  `feedModule`, `favoritesModule`. Koin does **not** aggregate them: `App.startKoin`
+  lists every one by hand, and a new module must be added there or nothing in it
+  resolves.
+- **domain carries no DI at all.** Use cases are plain classes with plain
+  constructors; `dataModule` is what knows how to build them.
+- `single` for what was `@Singleton` (repository, database, Retrofit, the
+  SnackbarNotifier); `factory` for everything else.
+- Screen collaborators that must **share** a StateHolder (ViewModel + ErrorHandler)
+  are constructed **inside the `viewModel { }` lambda** and passed to both. This is
+  the explicit replacement for `@ViewModelScoped`; do not register a StateHolder as
+  its own definition, or the two will resolve to different instances.
+- Apply Koin through the `catslist.koin` convention plugin, never by hand per module.
+- **Every feature module gets a graph test** (`FeedModuleTest`) that resolves its
+  ViewModel against `:core:testing` fakes. Koin resolves at runtime, so this is
+  what catches a definition that drifted from its constructor (ADR-0026).
 
 ---
 
 ## 7. Compose / UI
 
 - Split every screen: a **stateless** `XxxContent(state: XxxState, onEvent: (XxxEvent) -> Unit)`
-  plus a thin `XxxScreen(viewModel: XxxViewModel = hiltViewModel())` that does
+  plus a thin `XxxScreen(viewModel: XxxViewModel = koinViewModel())` that does
   `val state by viewModel.state.collectAsStateWithLifecycle()` and forwards
   `viewModel::onEvent`.
 - Composables contain **no business logic** — render state, emit events.
@@ -417,7 +423,7 @@ same package.
 - ViewModel tests: `@get:Rule val mainDispatcherRule = MainDispatcherRule()`
   (`UnconfinedTestDispatcher`), build the real ViewModel with fake collaborators
   + real use cases over a fake repository, then assert on
-  `viewModel.state.value` after calling `onEvent(...)`. Never involve Hilt.
+  `viewModel.state.value` after calling `onEvent(...)`. Never involve Koin.
 - `runTest { }` for anything touching `suspend` / `Flow`. Assertions with Google
   Truth.
 - StateHolder tests assert each mutator produces a fully valid state (no
@@ -448,7 +454,7 @@ same package.
   `dark`. Use `@PreviewParameter` with a small provider, or two `@Preview` funcs.
 - **Every reusable design-system component** gets a preview.
 - Previews render the **stateless** `XxxContent` with fake state + no-op
-  `onEvent`; never `hiltViewModel()`, never DI.
+  `onEvent`; never `koinViewModel()`, never DI.
 - Wrap every preview in the app theme.
 
 ---

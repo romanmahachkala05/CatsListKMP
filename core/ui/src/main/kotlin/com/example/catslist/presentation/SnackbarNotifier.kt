@@ -1,11 +1,5 @@
 package com.example.catslist.presentation
 
-import dagger.Binds
-import dagger.Module
-import dagger.hilt.InstallIn
-import dagger.hilt.components.SingletonComponent
-import javax.inject.Inject
-import javax.inject.Singleton
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.receiveAsFlow
@@ -25,17 +19,8 @@ interface SnackbarNotifier {
     suspend fun showMessage(message: UiText)
 }
 
-class DefaultSnackbarNotifier @Inject constructor() : SnackbarNotifier {
+class DefaultSnackbarNotifier : SnackbarNotifier {
     private val channel = Channel<UiText>(Channel.BUFFERED)
     override val messages: Flow<UiText> = channel.receiveAsFlow()
     override suspend fun showMessage(message: UiText) = channel.send(message)
-}
-
-@Module
-@InstallIn(SingletonComponent::class)
-abstract class SnackbarNotifierModule {
-    /** Scoped here, not on [DefaultSnackbarNotifier]: this is the binding everything injects. */
-    @Binds
-    @Singleton
-    abstract fun bindSnackbarNotifier(impl: DefaultSnackbarNotifier): SnackbarNotifier
 }

@@ -20,7 +20,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.paging.LoadState
 import androidx.paging.LoadStates
@@ -42,13 +41,14 @@ import com.example.catslist.presentation.heldAtLeast
 import com.example.catslist.presentation.theme.CatsListTheme
 import kotlinx.collections.immutable.persistentSetOf
 import kotlinx.coroutines.flow.flowOf
+import org.koin.androidx.compose.koinViewModel
 
 /** Snackbars are collected by the app's shared host (see MainActivity), not here. */
 @Composable
 fun CatsListScreen(modifier: Modifier = Modifier, contentPadding: PaddingValues = PaddingValues()) {
-    // A public function can't take an internal type, so hiltViewModel()'s default lives on the
+    // A public function can't take an internal type, so koinViewModel()'s default lives on the
     // private overload and CatsListViewModel stays internal.
-    CatsListScreen(modifier = modifier, contentPadding = contentPadding, viewModel = hiltViewModel())
+    CatsListScreen(modifier = modifier, contentPadding = contentPadding, viewModel = koinViewModel())
 }
 
 @Composable

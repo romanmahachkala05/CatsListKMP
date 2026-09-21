@@ -1,8 +1,6 @@
 package com.example.catslist.presentation.catslist
 
 import com.example.catslist.presentation.StateOwner
-import dagger.hilt.android.scopes.ViewModelScoped
-import javax.inject.Inject
 import kotlinx.collections.immutable.ImmutableSet
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -15,8 +13,7 @@ internal interface ICatsListStateHolder : StateOwner<CatsListState> {
     fun reset()
 }
 
-@ViewModelScoped
-internal class CatsListStateHolder @Inject constructor() : ICatsListStateHolder {
+internal class CatsListStateHolder : ICatsListStateHolder {
 
     private val _state = MutableStateFlow(CatsListState())
     override val state: StateFlow<CatsListState> = _state.asStateFlow()

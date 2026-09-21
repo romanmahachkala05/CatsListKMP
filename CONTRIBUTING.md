@@ -89,7 +89,7 @@ for the full dependency graph and the rules behind it.
 | Compose UI tests (which branch a screen shows) | the screen's own module | `src/androidTest/kotlin/` |
 | Compose UI tests for a component (gestures, phases, image states) | `:core:designsystem` | `src/androidTest/kotlin/` |
 | `App`, `MainActivity`, `NavDisplay` + back stack — composition root only | `:app` | `src/main/java/…/`, `…/presentation/navigation/` |
-| Convention plugins (`catslist.android.library`, `.jvm.library`, `.compose`, `.hilt`, `.quality`) | `build-logic` | `build-logic/convention/src/main/kotlin/` |
+| Convention plugins (`catslist.android.library`, `.jvm.library`, `.compose`, `.koin`, `.quality`) | `build-logic` | `build-logic/convention/src/main/kotlin/` |
 | Every dependency and version | — | `gradle/libs.versions.toml` |
 | `verify` / `verifyOnDevice` | — | root `build.gradle.kts` |
 
@@ -124,11 +124,11 @@ This is the outcome ADR-0001 anticipated and deferred — see
 - **No `var` state on a ViewModel** outside the `StateFlow` — model it in
   `XxxState`.
 - **Screen arguments** do not come from `SavedStateHandle` (Navigation 3). Use
-  Hilt assisted injection — [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) §6.
+  Koin injected parameters — [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) §6.
 - **Strings** live in `strings.xml`, grouped by screen. ViewModels and
   StateHolders use `UiText`, never `context.getString`.
 - **Previews** render the stateless `XxxContent` with fake data, never
-  `hiltViewModel()`. One per screen, two at most.
+  `koinViewModel()`. One per screen, two at most.
 - **Read-modify-write on a `MutableStateFlow` uses `update { }`**, never
   `state.value = f(state.value)` — see [ADR-0015](docs/DECISIONS.md#adr-0015).
 - **Every `onEvent` branch that calls a suspend or fallible operation handles
@@ -142,12 +142,12 @@ This is the outcome ADR-0001 anticipated and deferred — see
 - **A `:feature:*` module's ViewModel, StateHolder, ErrorHandler and contracts
   are `internal`.** Only the `NavKey` and the entry `@Composable` are public.
   If a public `@Composable` needs to take the ViewModel as a parameter (for
-  `hiltViewModel()`'s default), split it into a public overload with no
+  `koinViewModel()`'s default), split it into a public overload with no
   ViewModel parameter and a `private` one that takes it — a public function
   cannot take an `internal` type as a parameter.
 - **A module with a `@Serializable` type needs `kotlin.plugin.serialization`
   applied directly in its own `build.gradle.kts`** — it is not pulled in by
-  `catslist.hilt` or any other convention plugin. Missing it compiles fine and
+  `catslist.koin` or any other convention plugin. Missing it compiles fine and
   crashes only at runtime, on first use of the type.
 - **A branch on one value with a per-branch extra condition uses a subject
   `when` with a guard (`is X if cond -> …`, Kotlin 2.1+), not `when { x is X

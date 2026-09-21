@@ -7,14 +7,11 @@ import androidx.activity.enableEdgeToEdge
 import com.example.catslist.presentation.SnackbarNotifier
 import com.example.catslist.presentation.navigation.CatsNavDisplay
 import com.example.catslist.presentation.theme.CatsListTheme
-import dagger.hilt.android.AndroidEntryPoint
-import javax.inject.Inject
+import org.koin.android.ext.android.inject
 
-@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
-    @Inject
-    lateinit var snackbarNotifier: SnackbarNotifier
+    private val snackbarNotifier: SnackbarNotifier by inject()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

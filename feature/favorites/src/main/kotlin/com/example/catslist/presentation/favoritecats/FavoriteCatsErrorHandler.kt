@@ -2,16 +2,13 @@ package com.example.catslist.presentation.favoritecats
 
 import com.example.catslist.feature.favorites.R
 import com.example.catslist.presentation.UiText
-import dagger.hilt.android.scopes.ViewModelScoped
-import javax.inject.Inject
 
 internal interface IFavoriteCatsErrorHandler {
     /** The favorites stream ended in an error and won't emit again — retrying can't help. */
     fun onFavoritesFailure(error: Throwable)
 }
 
-@ViewModelScoped
-internal class FavoriteCatsErrorHandler @Inject constructor(
+internal class FavoriteCatsErrorHandler(
     private val stateHolder: IFavoriteCatsStateHolder,
 ) : IFavoriteCatsErrorHandler {
 

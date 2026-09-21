@@ -1,7 +1,7 @@
 plugins {
     id("catslist.android.library")
     id("catslist.compose")
-    id("catslist.hilt")
+    id("catslist.koin")
 }
 
 android {
