@@ -89,8 +89,9 @@ Rules:
   Only each file's own generated `R` class reference changes when it crosses a
   module boundary.
 - Shared build config lives in the `build-logic` composite build as
-  **convention plugins**: `catslist.jvm.library` and `catslist.android.library`
-  are the two bases; `catslist.compose`, `catslist.koin`, and `catslist.quality`
+  **convention plugins**: `catslist.kmp.library` and `catslist.android.library`
+  are the two bases (`catslist.jvm.library` remains for any module not yet
+  moved to `commonMain`); `catslist.compose`, `catslist.koin`, and `catslist.quality`
   (ktlint + detekt) are additive, applied only by the modules that actually
   need them. Never copy an `android { }` block between modules.
 - **A module that declares a `@Serializable` type (a feature module's

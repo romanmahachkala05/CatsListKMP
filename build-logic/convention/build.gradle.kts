@@ -29,6 +29,10 @@ gradlePlugin {
             id = "catslist.jvm.library"
             implementationClass = "JvmLibraryConventionPlugin"
         }
+        register("kmpLibrary") {
+            id = "catslist.kmp.library"
+            implementationClass = "KmpLibraryConventionPlugin"
+        }
         register("koin") {
             id = "catslist.koin"
             implementationClass = "KoinConventionPlugin"

@@ -89,7 +89,7 @@ for the full dependency graph and the rules behind it.
 | Compose UI tests (which branch a screen shows) | the screen's own module | `src/androidTest/kotlin/` |
 | Compose UI tests for a component (gestures, phases, image states) | `:core:designsystem` | `src/androidTest/kotlin/` |
 | `App`, `MainActivity`, `NavDisplay` + back stack — composition root only | `:app` | `src/main/java/…/`, `…/presentation/navigation/` |
-| Convention plugins (`catslist.android.library`, `.jvm.library`, `.compose`, `.koin`, `.quality`) | `build-logic` | `build-logic/convention/src/main/kotlin/` |
+| Convention plugins (`catslist.android.library`, `.kmp.library`, `.jvm.library`, `.compose`, `.koin`, `.quality`) | `build-logic` | `build-logic/convention/src/main/kotlin/` |
 | Every dependency and version | — | `gradle/libs.versions.toml` |
 | `verify` / `verifyOnDevice` | — | root `build.gradle.kts` |
 
