@@ -78,7 +78,8 @@ for the full dependency graph and the rules behind it.
 | --- | --- | --- |
 | Domain model | `:core:model` | `src/commonMain/kotlin/…/domain/model/` |
 | Use cases, `CatRepository`, `ImageDownloader` | `:core:domain` | `src/commonMain/kotlin/…/domain/` |
-| Repository impl, API service, Room entity/DAO/migrations, DI modules | `:core:data` | `src/main/kotlin/…/data/` |
+| Repository impl, API service, Room entity/DAO/migrations, DI modules | `:core:data` | `src/commonMain/kotlin/…/data/` |
+| Platform splits (database path, HTTP engine, image download) | `:core:data` | `src/androidMain/`, `src/jvmMain/` |
 | Committed Room schemas | `:core:data` | `schemas/` |
 | ViewModel-facing shared primitives: `UiText`, `launchCatching`, `RetryableFlow`, `StateOwner`, `SnackbarNotifier` | `:core:ui` | `src/main/kotlin/…/presentation/` |
 | Theme, shared components (e.g. the cat image card) | `:core:designsystem` | `src/main/kotlin/…/presentation/theme/`, `…/components/` |
@@ -86,7 +87,8 @@ for the full dependency graph and the rules behind it.
 | One MVI screen (State/Event/StateHolder/VM/Screen/ErrorHandler) | `:feature:favorites` | `src/main/kotlin/…/presentation/<name>/` |
 | One paged screen (Event/VM/Screen; Paging 3 owns load/error/retry state — [ADR-0024](docs/DECISIONS.md#adr-0024)) | `:feature:feed` | `src/main/kotlin/…/presentation/<name>/` |
 | Unit tests | same module as the code they test | `src/test/kotlin/` |
-| Device tests (Room behavior, migrations, upgrades) | `:core:data` | `src/androidTest/kotlin/` |
+| Device tests (Room behavior, migrations, upgrades) | `:core:data` | `src/androidDeviceTest/kotlin/` |
+| Desktop tests (the real database on the JVM) | `:core:data` | `src/jvmTest/kotlin/` |
 | Compose UI tests (which branch a screen shows) | the screen's own module | `src/androidTest/kotlin/` |
 | Compose UI tests for a component (gestures, phases, image states) | `:core:designsystem` | `src/androidTest/kotlin/` |
 | `App`, `MainActivity`, `NavDisplay` + back stack — composition root only | `:app` | `src/main/java/…/`, `…/presentation/navigation/` |

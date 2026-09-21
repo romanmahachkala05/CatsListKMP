@@ -47,16 +47,21 @@ Module graph (arrows = "depends on"):
       │          └──▶ :core:model, :core:data, :core:ui, :core:designsystem
       └──▶ :core:model, :core:data, :core:ui, :core:designsystem
 
-    :core:data          ──▶ :core:model, :core:domain      (Android)
+    :core:data          ──▶ :core:model, :core:domain      (multiplatform: common + android + jvm)
     :core:domain        ──▶ :core:model                    (multiplatform: common + jvm)
     :core:model         ──▶ (nothing)                      (multiplatform: common + jvm)
     :core:ui            ──▶ :core:model, :core:data
     :core:designsystem  ──▶ :core:model, :core:ui
     :core:testing       ──▶ :core:model, :core:data, :core:ui  (test-only; nothing depends on it in `main`)
 
-`:core:model` and `:core:domain` are Kotlin Multiplatform modules whose code
-lives in `commonMain`; everything else is still Android-only. See ADR-0028 for
-how far the migration has reached and what is left.
+`:core:model`, `:core:domain` and `:core:data` are Kotlin Multiplatform modules.
+`:core:ui`, `:core:designsystem`, the features and `:app` are still Android-only —
+the UI moves with Compose Multiplatform, which has not happened yet. See ADR-0028
+for the migration order and ADR-0029 for what `:core:data`'s split looks like.
+
+Source sets in a multiplatform module are `commonMain` plus `androidMain`/`jvmMain`,
+and its tests are `commonTest`, `androidHostTest` (JVM, no device), `androidDeviceTest`
+(instrumented) and `jvmTest` — AGP's multiplatform plugin names them, not us.
 
 Rules:
 
@@ -79,7 +84,10 @@ Rules:
   or feature-specific DI modules.
 - `:core:domain` owns the use cases, `CatRepository` and `ImageDownloader` —
   the ports, with no implementation and no platform. `:core:data` implements them.
-- `:core:data` owns the repository implementation, the API service and Room
+- `:core:data` owns the repository implementation, the API service and Room. It
+  splits on three seams only — where the database file lives, how the HTTP engine
+  is constructed, and how an image is downloaded (ADR-0029). Anything else that
+  reaches for a platform API belongs behind one of those, not in a fourth
   that wrap the repository — this project does not split those into separate
   domain/data/database modules; see ADR-0022's **Alternatives rejected** for
   why a finer split was not worth it at two features.

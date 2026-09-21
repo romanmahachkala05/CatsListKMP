@@ -1,15 +1,16 @@
 package com.example.catslist.data.local
 
 import androidx.room.migration.Migration
-import androidx.sqlite.db.SupportSQLiteDatabase
+import androidx.sqlite.SQLiteConnection
+import androidx.sqlite.execSQL
 
 /**
- * v2 -> v3: drop the redundant `favorite` column. SQLite on this minSdk has no
+ * v2 -> v3: drop the redundant `favorite` column. The SQLite this targets has no
  * ALTER TABLE ... DROP COLUMN, so the table is recreated instead.
  */
 val MIGRATION_2_3 = object : Migration(2, 3) {
-    override fun migrate(db: SupportSQLiteDatabase) {
-        db.execSQL(
+    override fun migrate(connection: SQLiteConnection) {
+        connection.execSQL(
             """
             CREATE TABLE IF NOT EXISTS favoriteCatsTable_new (
                 id TEXT NOT NULL PRIMARY KEY,
@@ -19,14 +20,14 @@ val MIGRATION_2_3 = object : Migration(2, 3) {
             )
             """.trimIndent(),
         )
-        db.execSQL(
+        connection.execSQL(
             """
             INSERT INTO favoriteCatsTable_new (id, url, width, height)
             SELECT id, url, width, height FROM favoriteCatsTable
             """.trimIndent(),
         )
-        db.execSQL("DROP TABLE favoriteCatsTable")
-        db.execSQL("ALTER TABLE favoriteCatsTable_new RENAME TO favoriteCatsTable")
+        connection.execSQL("DROP TABLE favoriteCatsTable")
+        connection.execSQL("ALTER TABLE favoriteCatsTable_new RENAME TO favoriteCatsTable")
     }
 }
 
@@ -35,8 +36,8 @@ val MIGRATION_2_3 = object : Migration(2, 3) {
  * again — a v3 install still has to reach v5, one step at a time.
  */
 val MIGRATION_3_4 = object : Migration(3, 4) {
-    override fun migrate(db: SupportSQLiteDatabase) {
-        db.execSQL(
+    override fun migrate(connection: SQLiteConnection) {
+        connection.execSQL(
             """
             CREATE TABLE IF NOT EXISTS feedCatsTable (
                 id TEXT NOT NULL PRIMARY KEY,
@@ -47,7 +48,7 @@ val MIGRATION_3_4 = object : Migration(3, 4) {
             )
             """.trimIndent(),
         )
-        db.execSQL(
+        connection.execSQL(
             """
             CREATE TABLE IF NOT EXISTS feedRemoteKeysTable (
                 id INTEGER NOT NULL PRIMARY KEY,
@@ -63,8 +64,8 @@ val MIGRATION_3_4 = object : Migration(3, 4) {
  * favorites are kept on disk. No user data is lost; favoriteCatsTable is untouched.
  */
 val MIGRATION_4_5 = object : Migration(4, 5) {
-    override fun migrate(db: SupportSQLiteDatabase) {
-        db.execSQL("DROP TABLE IF EXISTS feedCatsTable")
-        db.execSQL("DROP TABLE IF EXISTS feedRemoteKeysTable")
+    override fun migrate(connection: SQLiteConnection) {
+        connection.execSQL("DROP TABLE IF EXISTS feedCatsTable")
+        connection.execSQL("DROP TABLE IF EXISTS feedRemoteKeysTable")
     }
 }

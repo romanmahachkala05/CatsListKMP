@@ -3,8 +3,9 @@ package com.example.catslist.data.remote
 import androidx.paging.PagingSource
 import androidx.paging.PagingState
 import com.example.catslist.domain.model.Cat
-import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 /** Pages the feed straight from TheCatAPI, keeping nothing on disk. Only favorites persist. */
 class CatFeedPagingSource(
@@ -16,7 +17,14 @@ class CatFeedPagingSource(
      * pages, and the list keys its items by id, so a repeat is a crash (ADR-0015). Per
      * generation is the right scope: a refresh builds a new source and may repeat itself.
      */
-    private val seenIds = ConcurrentHashMap.newKeySet<String>()
+    private val seenIds = mutableSetOf<String>()
+
+    /**
+     * Paging can have a refresh and an append in flight at once, so the set needs guarding.
+     * A `Mutex` rather than a concurrent collection: `java.util.concurrent` is not on every
+     * platform, and the critical section is one filter over one page.
+     */
+    private val seenIdsLock = Mutex()
 
     /** Always restarts at the first page: random cats have no stable position to return to. */
     override fun getRefreshKey(state: PagingState<Int, Cat>): Int? = null
@@ -30,8 +38,9 @@ class CatFeedPagingSource(
         val page = params.key ?: STARTING_PAGE
         return try {
             val cats = catApiService.requestCatInfo(limit = params.loadSize, page = page)
+            val fresh = seenIdsLock.withLock { cats.filter { seenIds.add(it.id) } }
             LoadResult.Page(
-                data = cats.filter { seenIds.add(it.id) }.map { it.toDomain() },
+                data = fresh.map { it.toDomain() },
                 // The feed only appends; the API has no notion of newer cats.
                 prevKey = null,
                 // Keyed off the response, not the filtered list: an all-repeats page still has

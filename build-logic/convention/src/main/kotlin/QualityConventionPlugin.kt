@@ -25,8 +25,11 @@ class QualityConventionPlugin : Plugin<Project> {
                     reporter(ReporterType.PLAIN)
                 }
                 filter {
-                    // Generated sources are not ours to format.
-                    exclude { it.file.path.contains("/build/") }
+                    // Generated sources are not ours to format. `invariantSeparatorsPath`,
+                    // not `path`: on Windows the latter uses backslashes, so this never
+                    // matched — which went unnoticed until Room's KSP output landed in a
+                    // multiplatform source set and ktlint started reporting it.
+                    exclude { it.file.invariantSeparatorsPath.contains("/build/") }
                 }
             }
 
@@ -34,12 +37,17 @@ class QualityConventionPlugin : Plugin<Project> {
                 // Only the deviations are in the file; the rest are detekt's defaults.
                 buildUponDefaultConfig.set(true)
                 config.setFrom(rootProject.file("config/detekt/detekt.yml"))
-                // androidTest is not in the default source set, and :core:data keeps its
-                // migration tests there.
+                // Neither androidTest nor the multiplatform source sets are in detekt's
+                // defaults. Listed rather than globbed so a new source set is a deliberate
+                // addition here, and filtered so Android-only and KMP modules can share one
+                // list.
                 source.setFrom(
-                    listOf("src/main", "src/test", "src/androidTest")
-                        .map { project.file(it) }
-                        .filter { it.exists() },
+                    listOf(
+                        "src/main", "src/test", "src/androidTest",
+                        "src/commonMain", "src/commonTest",
+                        "src/androidMain", "src/androidHostTest", "src/androidDeviceTest",
+                        "src/jvmMain", "src/jvmTest",
+                    ).map { project.file(it) }.filter { it.exists() },
                 )
             }
 

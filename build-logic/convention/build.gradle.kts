@@ -33,6 +33,10 @@ gradlePlugin {
             id = "catslist.kmp.library"
             implementationClass = "KmpLibraryConventionPlugin"
         }
+        register("kmpAndroidLibrary") {
+            id = "catslist.kmp.android.library"
+            implementationClass = "KmpAndroidLibraryConventionPlugin"
+        }
         register("koin") {
             id = "catslist.koin"
             implementationClass = "KoinConventionPlugin"
