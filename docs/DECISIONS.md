@@ -55,6 +55,7 @@ that fail without the fix. They are here because finding them was the work.
 | [0026](#adr-0026) | Koin for dependency injection | Accepted |
 | [0027](#adr-0027) | Ktor for HTTP, replacing Retrofit | Accepted |
 | [0028](#adr-0028) | Migrate to KMP module by module, from the bottom | Accepted |
+| [0029](#adr-0029) | `:core:data` on Room KMP, with a real desktop target | Accepted |
 
 ---
 
@@ -1220,7 +1221,15 @@ follows dependencies, not enthusiasm:
    move plus a convention plugin.
 3. `:core:data` — Room, the HTTP engine, and `DownloadManager` all need
    `expect`/`actual`. Not yet done.
-4. The UI, via Compose Multiplatform. Not yet done.
+4. The UI, via Compose Multiplatform. Not yet done. Checked rather than
+   assumed, though: Compose Multiplatform 1.12.0 compiles a `commonMain`
+   Composable for the JVM against this project's Kotlin 2.3.21, and every
+   library the UI depends on — `navigation3-runtime`, `navigation3-ui`,
+   `paging-compose`, `lifecycle-viewmodel-compose`,
+   `lifecycle-viewmodel-navigation3` — already publishes `common`, `jvm` and
+   `native` variants. The obstacle is size, not feasibility: ~3,300 lines across
+   four modules, 50 `R.string` lookups to move to Compose resources, the Compose
+   UI test rules, and a desktop entry point.
 
 `:core:domain` is a new module, split out of `:core:data`. The use cases,
 `CatRepository` and `ImageDownloader` were always platform-free but sat in a
@@ -1254,3 +1263,73 @@ and still cover the domain; they are just in the wrong module.
 **Review when:** `:core:data` reaches `commonMain`. At that point the desktop
 target has a real data layer behind it, and whether the UI follows via Compose
 Multiplatform stops being hypothetical.
+
+---
+
+## ADR-0029
+
+### `:core:data` on Room KMP, with a real desktop target
+
+**Accepted** · 2026-09-21
+
+**Context.** Step 3 of [ADR-0028](#adr-0028). `:core:data` is where the platform
+actually shows up: Room, an HTTP engine, and `DownloadManager` are three
+different kinds of "this only exists on Android", and each needed a different
+answer.
+
+**Decision.** The module moves to `commonMain` with `androidTarget` and `jvm`,
+and splits on exactly three seams:
+
+- **The database file.** Room 2.8 is multiplatform, so the entity, DAO,
+  `@Database` and all three migrations are common. Only *where the file lives*
+  differs, so `withCatDatabaseDefaults()` holds the shared configuration and each
+  platform supplies its own `catDatabaseBuilder`. Android uses
+  `getDatabasePath()`; desktop uses `~/.catslist`.
+- **The HTTP engine.** OkHttp runs on both targets, so the engine is not really
+  a platform difference — only its construction is. `catHttpClient` already took
+  its engine as a parameter ([ADR-0027](#adr-0027)), so the split is one Koin
+  binding per platform and nothing else.
+- **Downloading an image.** This one is a genuine difference.
+  `DownloadManager` has no desktop equivalent, so `DesktopImageDownloader`
+  fetches the bytes with the same Ktor client and writes them to `~/Downloads`.
+
+DI splits the same way: `dataModule` is common and `includes(platformDataModule)`,
+an `expect val` whose `actual` supplies the three answers above.
+
+**Consequences.** The desktop target is not a configuration claim — it is tested.
+`CatDatabaseJvmTest` builds the real database through the shipped
+`withCatDatabaseDefaults()` and exercises the favorites round-trip on the JVM,
+with no Android on the classpath. If Room's KMP codegen, the bundled SQLite
+driver or the migration set were wrong for that target, nothing else in the build
+would catch it.
+
+Three things had to change that were not about Room at all:
+
+- **`com.android.library` cannot be applied with the multiplatform plugin as of
+  AGP 9.** The replacement, `com.android.kotlin.multiplatform.library`, renames
+  the source sets: `androidMain`, `androidHostTest`, `androidDeviceTest` — not
+  `main`, `test`, `androidTest`. It also leaves Android resources *off* by
+  default, which `CatImageDownloader`'s `R.string` lookups need switched back on.
+- **`:core:data` was getting KSP from the Hilt convention plugin** and now
+  applies it directly — already true since ADR-0026, but the per-target
+  `kspAndroid`/`kspJvm` wiring is new: Room's processor runs once per target.
+- **detekt and ktlint both needed teaching.** detekt's default test exclusions
+  predate AGP's multiplatform source-set names, and ktlint's generated-source
+  filter compared `File.path` against `"/build/"` — which on Windows never
+  matched, because that path uses backslashes. The filter had been silently
+  inert; Room's KSP output in a multiplatform source set is simply the first
+  thing that made it visible.
+
+`CatFeedPagingSource` traded `ConcurrentHashMap.newKeySet()` for a `MutableSet`
+behind a `Mutex`. The guarantee is unchanged — Paging can still have a refresh
+and an append in flight at once — but `java.util.concurrent` is not a thing on
+every target.
+
+**What this does *not* claim.** The Android app compiles and its unit tests pass,
+but nothing here has been run on a device or an emulator; the instrumented tests
+are compiled, not executed, exactly as before ([ADR-0018](#adr-0018)). And there
+is still no desktop *application* — the data layer runs on the JVM, the UI does
+not, because Compose Multiplatform is step 4.
+
+**Review when:** the UI moves. At that point `jvm()` stops being a target that
+only tests exercise and becomes something a person can actually open.

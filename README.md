@@ -25,9 +25,10 @@ Nine Gradle modules, Clean Architecture, one direction of dependency:
                                      :core:data, :core:ui, :core:designsystem
 ```
 
-`:core:model` and `:core:domain` are Kotlin Multiplatform modules and know
-nothing about Android — no SDK, no Compose, no Room, no Koin. `:core:data`
-implements the repository a use case declares. Each feature
+`:core:model`, `:core:domain` and `:core:data` are Kotlin Multiplatform modules,
+building for Android and for the JVM (desktop). The first two know nothing about
+Android at all; `:core:data` implements the repository a use case declares and
+splits on three seams — the database path, the HTTP engine, and image download. Each feature
 module exposes exactly two public things, its `NavKey` and one entry
 `@Composable`; everything else — ViewModel, StateHolder, ErrorHandler — is
 `internal`, enforced by the compiler rather than by convention.
@@ -57,6 +58,7 @@ different reason than ADR-0001 predicted).
 | DI | Koin |
 | Async | Coroutines, Flow |
 | Network | Ktor |
+| Multiplatform | Android + JVM (desktop); iOS not yet |
 | Storage | Room, with real migrations and committed schemas — favorites only |
 | Pagination | Paging 3, paging the feed straight from the network |
 | Build | Gradle KTS, version catalog, KSP, JDK 17 |
