@@ -6,7 +6,7 @@ import org.gradle.kotlin.dsl.configure
 
 /**
  * The shared Android defaults, used by every module except `:app` and `:core:model`. Compose
- * and Hilt are separate additive plugins, applied only by the modules that need them.
+ * and Koin are separate additive plugins, applied only by the modules that need them.
  */
 class AndroidLibraryConventionPlugin : Plugin<Project> {
     override fun apply(target: Project) {

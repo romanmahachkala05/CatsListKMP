@@ -14,8 +14,6 @@ import com.example.catslist.presentation.SnackbarNotifier
 import com.example.catslist.presentation.StateOwner
 import com.example.catslist.presentation.downloadCat
 import com.example.catslist.presentation.launchCatching
-import dagger.hilt.android.lifecycle.HiltViewModel
-import javax.inject.Inject
 import kotlinx.collections.immutable.toPersistentSet
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
@@ -23,8 +21,7 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 
-@HiltViewModel
-internal class CatsListViewModel @Inject constructor(
+internal class CatsListViewModel(
     private val stateHolder: ICatsListStateHolder,
     private val errorHandler: ICatsListErrorHandler,
     getCatFeed: GetCatFeedUseCase,

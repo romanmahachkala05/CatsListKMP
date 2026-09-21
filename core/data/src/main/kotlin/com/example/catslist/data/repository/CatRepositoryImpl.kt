@@ -10,15 +10,12 @@ import com.example.catslist.data.remote.CatApiService
 import com.example.catslist.data.remote.CatFeedPagingSource
 import com.example.catslist.domain.model.Cat
 import com.example.catslist.domain.repository.CatRepository
-import javax.inject.Inject
-import javax.inject.Singleton
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toPersistentList
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
-@Singleton
-class CatRepositoryImpl @Inject constructor(
+class CatRepositoryImpl(
     private val catDao: CatDao,
     private val catApiService: CatApiService,
 ) : CatRepository {

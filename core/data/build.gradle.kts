@@ -1,7 +1,8 @@
 plugins {
     id("catslist.android.library")
-    // catslist.hilt already applies the KSP plugin; Room's annotation processing reuses it.
-    id("catslist.hilt")
+    id("catslist.koin")
+    // Applied here now: catslist.koin brings no KSP, and Room's compiler needs it.
+    alias(libs.plugins.ksp)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.androidx.room)
 }

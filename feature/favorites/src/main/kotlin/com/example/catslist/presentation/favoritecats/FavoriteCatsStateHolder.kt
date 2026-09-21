@@ -3,8 +3,6 @@ package com.example.catslist.presentation.favoritecats
 import com.example.catslist.domain.model.Cat
 import com.example.catslist.presentation.StateOwner
 import com.example.catslist.presentation.UiText
-import dagger.hilt.android.scopes.ViewModelScoped
-import javax.inject.Inject
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -18,8 +16,7 @@ internal interface IFavoriteCatsStateHolder : StateOwner<FavoriteCatsState> {
     fun reset()
 }
 
-@ViewModelScoped
-internal class FavoriteCatsStateHolder @Inject constructor() : IFavoriteCatsStateHolder {
+internal class FavoriteCatsStateHolder : IFavoriteCatsStateHolder {
 
     private val _state = MutableStateFlow(FavoriteCatsState())
     override val state: StateFlow<FavoriteCatsState> = _state.asStateFlow()

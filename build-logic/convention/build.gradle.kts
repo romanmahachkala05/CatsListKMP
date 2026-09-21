@@ -29,9 +29,9 @@ gradlePlugin {
             id = "catslist.jvm.library"
             implementationClass = "JvmLibraryConventionPlugin"
         }
-        register("hilt") {
-            id = "catslist.hilt"
-            implementationClass = "HiltConventionPlugin"
+        register("koin") {
+            id = "catslist.koin"
+            implementationClass = "KoinConventionPlugin"
         }
         register("compose") {
             id = "catslist.compose"

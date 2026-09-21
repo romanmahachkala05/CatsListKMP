@@ -30,7 +30,7 @@ that fail without the fix. They are here because finding them was the work.
 | [0001](#adr-0001) | Single-module Clean Architecture | **Superseded** by 0022 |
 | [0002](#adr-0002) | Kotlin DSL + version catalog, no hardcoded versions | Accepted |
 | [0003](#adr-0003) | Compose with an explicit MVI screen contract | Accepted |
-| [0004](#adr-0004) | Hilt for dependency injection | Accepted |
+| [0004](#adr-0004) | Hilt for dependency injection | **Superseded** by 0026 |
 | [0005](#adr-0005) | Real Room migrations, not destructive fallback | Accepted |
 | [0006](#adr-0006) | Coil instead of Glide | Accepted |
 | [0007](#adr-0007) | No UI side effects below the presentation layer | Accepted |
@@ -52,6 +52,7 @@ that fail without the fix. They are here because finding them was the work.
 | [0023](#adr-0023) | Paging 3 for the feed, with a `RemoteMediator` | **Superseded** by 0025 |
 | [0024](#adr-0024) | Paging owns the feed's *load* state, not its whole state | Accepted |
 | [0025](#adr-0025) | Page the feed from the network; persist only favorites | Accepted |
+| [0026](#adr-0026) | Koin for dependency injection | Accepted |
 
 ---
 
@@ -1085,3 +1086,60 @@ random cats has no staleness, only novelty.
 **Review when:** the feed gains an identity worth returning to — a search, a
 filter, a breed — at which point the same cats on relaunch stops being noise
 and starts being state, and something has to persist it again.
+
+---
+
+## ADR-0026
+
+### Koin for dependency injection
+
+**Accepted** · 2026-09-21 · supersedes [ADR-0004](#adr-0004)
+
+**Context.** This repository is a fork of the Android app, taken at v2.2.0, whose
+purpose is to become a Kotlin Multiplatform project. Hilt is the one piece of
+the stack with no multiplatform story at all: it is a Dagger-based, JVM-only
+annotation processor bound to Android's component hierarchy, and no amount of
+source-set arrangement puts `@HiltViewModel` into `commonMain`.
+
+The swap is recorded as its own decision, and done first, because it is the
+only migration step that is worth making on its own terms. Retrofit, Room and
+Compose all have multiplatform successors that the KMP work will reach for
+anyway; DI had to be chosen.
+
+**Decision.** Koin 4.1, with each Gradle module owning a `Module` value —
+`dataModule`, `uiModule`, `feedModule`, `favoritesModule` — assembled by
+`App.startKoin`. `single` where the binding was `@Singleton`, `factory` where it
+was Hilt's unscoped default.
+
+`@ViewModelScoped` has no direct equivalent, and does not need one. Hilt used it
+so that a ViewModel and its ErrorHandler resolved to the *same* StateHolder; in
+Koin the StateHolder is constructed inside the `viewModel { }` lambda and handed
+to both, which is the same guarantee written as an assignment rather than
+inferred from a scope annotation.
+
+**Consequences.** The graph is no longer verified at compile time. This is the
+real cost, and it is a genuine loss: a definition that drifts from its
+constructor is now a crash when the screen opens rather than a build failure.
+`FeedModuleTest` and `FavoritesModuleTest` buy most of it back — they build the
+real feature module against the `:core:testing` fakes and resolve the ViewModel,
+so drift fails a unit test instead of a user's launch. They are not a full
+substitute: they cover the feature graphs, while `dataModule` needs a `Context`
+and a real database and so is only exercised on a device.
+
+What is gained beyond portability: KSP leaves the DI path entirely, and with it
+the generated-code stack traces that ADR-0004 listed as Hilt's price. One
+consequence worth naming — `:core:data` applied `catslist.hilt` partly to get
+the KSP plugin that Room's compiler reused. `catslist.koin` brings no KSP, so
+`:core:data` now applies it directly. The coupling was always accidental; it is
+just visible now.
+
+**Alternative rejected.** Koin Annotations (`@Single`, `@Factory`, KSP-generated
+modules), which would keep an annotation-driven style and restore some
+compile-time checking. Rejected because it puts KSP back in the DI path to
+recover a fraction of what Dagger gave, and the hand-written modules are short
+enough — four of them, none over thirty lines — that the DSL is not the part
+that needed help.
+
+**Review when:** the app has enough screens that `App.startKoin`'s module list
+becomes a thing people forget to update, at which point module aggregation
+needs to move somewhere that fails loudly.

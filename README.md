@@ -7,7 +7,7 @@ favorites kept in Room and one-tap image download.
 
 Originally written in 2022 with XML views, `AsyncTask`-era patterns and a
 `fallbackToDestructiveMigration()` database. Rebuilt incrementally — Compose,
-Clean Architecture, MVI, Navigation 3, Hilt, real migrations — one reviewable
+Clean Architecture, MVI, Navigation 3, Koin, real migrations — one reviewable
 pull request at a time, with the build green at every commit.
 
 | Feed | Favorites | Failure and recovery |
@@ -26,7 +26,7 @@ Eight Gradle modules, Clean Architecture, one direction of dependency:
 ```
 
 `:core:model` knows nothing about Android — no SDK, no Compose, no Room, no
-Hilt. `:core:data` implements the repository a use case declares. Each feature
+Koin. `:core:data` implements the repository a use case declares. Each feature
 module exposes exactly two public things, its `NavKey` and one entry
 `@Composable`; everything else — ViewModel, StateHolder, ErrorHandler — is
 `internal`, enforced by the compiler rather than by convention.
@@ -53,7 +53,7 @@ different reason than ADR-0001 predicted).
 | --- | --- |
 | UI | Jetpack Compose, Material 3, Coil |
 | Navigation | Navigation 3 (`NavDisplay`, typed `NavKey`s) |
-| DI | Hilt |
+| DI | Koin |
 | Async | Coroutines, Flow |
 | Network | Retrofit |
 | Storage | Room, with real migrations and committed schemas — favorites only |

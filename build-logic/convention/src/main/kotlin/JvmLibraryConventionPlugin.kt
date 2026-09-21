@@ -4,7 +4,7 @@ import org.gradle.kotlin.dsl.configure
 import org.jetbrains.kotlin.gradle.dsl.KotlinJvmProjectExtension
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
-/** For modules with no Android, Compose, or Hilt dependency — plain Kotlin/JVM only. */
+/** For modules with no Android, Compose, or Koin dependency — plain Kotlin/JVM only. */
 class JvmLibraryConventionPlugin : Plugin<Project> {
     override fun apply(target: Project) {
         with(target) {

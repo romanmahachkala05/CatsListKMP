@@ -11,13 +11,10 @@ import com.example.catslist.presentation.SnackbarNotifier
 import com.example.catslist.presentation.StateOwner
 import com.example.catslist.presentation.downloadCat
 import com.example.catslist.presentation.launchCatching
-import dagger.hilt.android.lifecycle.HiltViewModel
-import javax.inject.Inject
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 
-@HiltViewModel
-internal class FavoriteCatsViewModel @Inject constructor(
+internal class FavoriteCatsViewModel(
     private val stateHolder: IFavoriteCatsStateHolder,
     private val errorHandler: IFavoriteCatsErrorHandler,
     getFavoriteCats: GetFavoriteCatsUseCase,
