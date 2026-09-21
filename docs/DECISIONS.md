@@ -53,6 +53,7 @@ that fail without the fix. They are here because finding them was the work.
 | [0024](#adr-0024) | Paging owns the feed's *load* state, not its whole state | Accepted |
 | [0025](#adr-0025) | Page the feed from the network; persist only favorites | Accepted |
 | [0026](#adr-0026) | Koin for dependency injection | Accepted |
+| [0027](#adr-0027) | Ktor for HTTP, replacing Retrofit | Accepted |
 
 ---
 
@@ -1143,3 +1144,48 @@ that needed help.
 **Review when:** the app has enough screens that `App.startKoin`'s module list
 becomes a thing people forget to update, at which point module aggregation
 needs to move somewhere that fails loudly.
+
+---
+
+## ADR-0027
+
+### Ktor for HTTP, replacing Retrofit
+
+**Accepted** · 2026-09-21
+
+**Context.** Retrofit is JVM-only. It builds its implementation with
+`java.lang.reflect.Proxy` over an annotated interface, which has no counterpart
+on Kotlin/Native, so `CatApiService` as written could never move to
+`commonMain`. Like Hilt in [ADR-0026](#adr-0026), it is a dependency the
+multiplatform work has to replace rather than rearrange.
+
+**Decision.** Ktor 3.6 with the OkHttp engine. `CatApiService` survives as a
+plain `suspend fun` interface — it is what `FakeCatApiService` implements and
+what `CatFeedPagingSource` is tested against — and `KtorCatApiService` becomes
+its one real implementation.
+
+The OkHttp engine specifically, not CIO: OkHttp is already pinned here because
+Coil brings its own ([ADR-0006](#adr-0006)), and using it for both keeps one
+HTTP stack in the app rather than two. It is also JVM-and-Android only, so the
+engine is the piece that becomes `expect`/`actual` when this module moves to
+`commonMain`; the client configuration around it does not.
+
+**Consequences.** The request is now built by hand where Retrofit derived it
+from annotations, which moves a class of mistake from compile time to runtime:
+a wrong path or a mistyped query parameter used to be impossible, and is now
+merely untested. `KtorCatApiServiceTest` is the answer — `catHttpClient` takes
+its engine as a parameter so the test drives the *real* client configuration
+against `MockEngine`, asserting the path, both paging parameters, and that an
+unknown field in the response is still tolerated.
+
+Retrofit's converter is gone too, so the `Json` instance is configured once on
+the client rather than wrapped in a `Converter.Factory`. That is a small
+simplification and the reason `CAT_API_BASE_URL` gained a trailing slash: Ktor
+resolves a request path relative to the default URL, where Retrofit normalized
+the base itself.
+
+**Alternative rejected.** Ktorfit, which keeps the annotated-interface style on
+top of Ktor via KSP. Rejected for the same reason as Koin Annotations in
+ADR-0026 — it reintroduces code generation to preserve a syntax, and this API
+surface is a single endpoint with two query parameters. There is not enough
+here for the generator to earn its place in the build.

@@ -21,7 +21,7 @@ before changing the architecture. This file is the *what*; `AGENTS.md` is the
 
 Known-good set (as of 2026‑09 — verify current): Kotlin 2.4.x, KSP 2.3.x,
 AGP 9.x, Gradle 9.7.x, Compose BOM 2026.08.x, Koin 4.1.x,
-Room 2.8.x, androidx.navigation3 1.1.x,
+Room 2.8.x, Ktor 3.6.x, androidx.navigation3 1.1.x,
 lifecycle 2.11.x, coroutines 1.11.x, kotlinx-serialization 1.11.x,
 kotlinx.collections.immutable (latest), Truth 1.4.x.
 
@@ -354,7 +354,7 @@ load; `PagingData` is exposed alongside `state` rather than inside it, because
   resolves.
 - **domain carries no DI at all.** Use cases are plain classes with plain
   constructors; `dataModule` is what knows how to build them.
-- `single` for what was `@Singleton` (repository, database, Retrofit, the
+- `single` for what was `@Singleton` (repository, database, the `HttpClient`, the
   SnackbarNotifier); `factory` for everything else.
 - Screen collaborators that must **share** a StateHolder (ViewModel + ErrorHandler)
   are constructed **inside the `viewModel { }` lambda** and passed to both. This is
