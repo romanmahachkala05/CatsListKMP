@@ -71,13 +71,14 @@ if the machine has none) whatever `JAVA_HOME` happens to be. Regenerate that fil
 
 ## Where things live
 
-Eight Gradle modules — see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) §2b
+Nine Gradle modules — see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) §2b
 for the full dependency graph and the rules behind it.
 
 | Thing | Module | Location |
 | --- | --- | --- |
-| Domain model | `:core:model` | `src/main/kotlin/…/domain/model/` |
-| Repository interface + impl, use cases, API service, Room entity/DAO/migrations, DI modules | `:core:data` | `src/main/kotlin/…/domain/`, `…/data/` |
+| Domain model | `:core:model` | `src/commonMain/kotlin/…/domain/model/` |
+| Use cases, `CatRepository`, `ImageDownloader` | `:core:domain` | `src/commonMain/kotlin/…/domain/` |
+| Repository impl, API service, Room entity/DAO/migrations, DI modules | `:core:data` | `src/main/kotlin/…/data/` |
 | Committed Room schemas | `:core:data` | `schemas/` |
 | ViewModel-facing shared primitives: `UiText`, `launchCatching`, `RetryableFlow`, `StateOwner`, `SnackbarNotifier` | `:core:ui` | `src/main/kotlin/…/presentation/` |
 | Theme, shared components (e.g. the cat image card) | `:core:designsystem` | `src/main/kotlin/…/presentation/theme/`, `…/components/` |
@@ -89,7 +90,7 @@ for the full dependency graph and the rules behind it.
 | Compose UI tests (which branch a screen shows) | the screen's own module | `src/androidTest/kotlin/` |
 | Compose UI tests for a component (gestures, phases, image states) | `:core:designsystem` | `src/androidTest/kotlin/` |
 | `App`, `MainActivity`, `NavDisplay` + back stack — composition root only | `:app` | `src/main/java/…/`, `…/presentation/navigation/` |
-| Convention plugins (`catslist.android.library`, `.jvm.library`, `.compose`, `.koin`, `.quality`) | `build-logic` | `build-logic/convention/src/main/kotlin/` |
+| Convention plugins (`catslist.android.library`, `.kmp.library`, `.jvm.library`, `.compose`, `.koin`, `.quality`) | `build-logic` | `build-logic/convention/src/main/kotlin/` |
 | Every dependency and version | — | `gradle/libs.versions.toml` |
 | `verify` / `verifyOnDevice` | — | root `build.gradle.kts` |
 

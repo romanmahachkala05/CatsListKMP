@@ -18,15 +18,16 @@ pull request at a time, with the build green at every commit.
 
 ## Architecture
 
-Eight Gradle modules, Clean Architecture, one direction of dependency:
+Nine Gradle modules, Clean Architecture, one direction of dependency:
 
 ```
-:app  ──►  :feature:feed, :feature:favorites  ──►  :core:model, :core:data,
-                                                     :core:ui, :core:designsystem
+:app  ──►  :feature:feed, :feature:favorites  ──►  :core:model, :core:domain,
+                                     :core:data, :core:ui, :core:designsystem
 ```
 
-`:core:model` knows nothing about Android — no SDK, no Compose, no Room, no
-Koin. `:core:data` implements the repository a use case declares. Each feature
+`:core:model` and `:core:domain` are Kotlin Multiplatform modules and know
+nothing about Android — no SDK, no Compose, no Room, no Koin. `:core:data`
+implements the repository a use case declares. Each feature
 module exposes exactly two public things, its `NavKey` and one entry
 `@Composable`; everything else — ViewModel, StateHolder, ErrorHandler — is
 `internal`, enforced by the compiler rather than by convention.
@@ -55,7 +56,7 @@ different reason than ADR-0001 predicted).
 | Navigation | Navigation 3 (`NavDisplay`, typed `NavKey`s) |
 | DI | Koin |
 | Async | Coroutines, Flow |
-| Network | Retrofit |
+| Network | Ktor |
 | Storage | Room, with real migrations and committed schemas — favorites only |
 | Pagination | Paging 3, paging the feed straight from the network |
 | Build | Gradle KTS, version catalog, KSP, JDK 17 |
@@ -136,5 +137,5 @@ JDK 17. No API key required — TheCatAPI's search endpoint is open.
 Tracked honestly rather than hidden: no app icon, `minifyEnabled` is off for
 release ([RELEASING.md](RELEASING.md#known-limitations)), the instrumented
 tests do not yet run in CI ([ADR-0018](docs/DECISIONS.md#adr-0018)), and Coil
-and Retrofit still build two separate `OkHttpClient` instances rather than
-sharing one configured client ([ADR-0006](docs/DECISIONS.md#adr-0006)).
+and Ktor's OkHttp engine still build two separate `OkHttpClient` instances
+rather than sharing one configured client ([ADR-0006](docs/DECISIONS.md#adr-0006)).

@@ -53,6 +53,8 @@ that fail without the fix. They are here because finding them was the work.
 | [0024](#adr-0024) | Paging owns the feed's *load* state, not its whole state | Accepted |
 | [0025](#adr-0025) | Page the feed from the network; persist only favorites | Accepted |
 | [0026](#adr-0026) | Koin for dependency injection | Accepted |
+| [0027](#adr-0027) | Ktor for HTTP, replacing Retrofit | Accepted |
+| [0028](#adr-0028) | Migrate to KMP module by module, from the bottom | Accepted |
 
 ---
 
@@ -1143,3 +1145,112 @@ that needed help.
 **Review when:** the app has enough screens that `App.startKoin`'s module list
 becomes a thing people forget to update, at which point module aggregation
 needs to move somewhere that fails loudly.
+
+---
+
+## ADR-0027
+
+### Ktor for HTTP, replacing Retrofit
+
+**Accepted** · 2026-09-21
+
+**Context.** Retrofit is JVM-only. It builds its implementation with
+`java.lang.reflect.Proxy` over an annotated interface, which has no counterpart
+on Kotlin/Native, so `CatApiService` as written could never move to
+`commonMain`. Like Hilt in [ADR-0026](#adr-0026), it is a dependency the
+multiplatform work has to replace rather than rearrange.
+
+**Decision.** Ktor 3.6 with the OkHttp engine. `CatApiService` survives as a
+plain `suspend fun` interface — it is what `FakeCatApiService` implements and
+what `CatFeedPagingSource` is tested against — and `KtorCatApiService` becomes
+its one real implementation.
+
+The OkHttp engine specifically, not CIO: OkHttp is already pinned here because
+Coil brings its own ([ADR-0006](#adr-0006)), and using it for both keeps one
+HTTP stack in the app rather than two. It is also JVM-and-Android only, so the
+engine is the piece that becomes `expect`/`actual` when this module moves to
+`commonMain`; the client configuration around it does not.
+
+**Consequences.** The request is now built by hand where Retrofit derived it
+from annotations, which moves a class of mistake from compile time to runtime:
+a wrong path or a mistyped query parameter used to be impossible, and is now
+merely untested. `KtorCatApiServiceTest` is the answer — `catHttpClient` takes
+its engine as a parameter so the test drives the *real* client configuration
+against `MockEngine`, asserting the path, both paging parameters, and that an
+unknown field in the response is still tolerated.
+
+Retrofit's converter is gone too, so the `Json` instance is configured once on
+the client rather than wrapped in a `Converter.Factory`. That is a small
+simplification and the reason `CAT_API_BASE_URL` gained a trailing slash: Ktor
+resolves a request path relative to the default URL, where Retrofit normalized
+the base itself.
+
+**Alternative rejected.** Ktorfit, which keeps the annotated-interface style on
+top of Ktor via KSP. Rejected for the same reason as Koin Annotations in
+ADR-0026 — it reintroduces code generation to preserve a syntax, and this API
+surface is a single endpoint with two query parameters. There is not enough
+here for the generator to earn its place in the build.
+
+---
+
+## ADR-0028
+
+### Migrate to KMP module by module, from the bottom
+
+**Accepted** · 2026-09-21
+
+**Context.** This repository was forked from `CatsListApplication` at v2.2.0 to
+become a Kotlin Multiplatform project. The question was not *whether* the code
+ports — most of it is coroutines, Flow and plain Kotlin — but in what order, and
+what "done" means at each step.
+
+The tempting shape is one large change that stands up `commonMain`,
+`androidMain` and an `iosApp/` at once. That produces a tree that does not build
+for days and a single commit nobody can review.
+
+**Decision.** One module at a time, lowest in the dependency graph first, with
+the Android app building and `./gradlew verify` green at every commit. The order
+follows dependencies, not enthusiasm:
+
+1. Replace the dependencies with no multiplatform story at all, while everything
+   is still Android — Hilt ([ADR-0026](#adr-0026)), then Retrofit
+   ([ADR-0027](#adr-0027)). These are the changes that touch the most files, and
+   they are much easier to review against an otherwise unchanged app.
+2. `:core:model`, then `:core:domain` — pure Kotlin, so the port is a source-set
+   move plus a convention plugin.
+3. `:core:data` — Room, the HTTP engine, and `DownloadManager` all need
+   `expect`/`actual`. Not yet done.
+4. The UI, via Compose Multiplatform. Not yet done.
+
+`:core:domain` is a new module, split out of `:core:data`. The use cases,
+`CatRepository` and `ImageDownloader` were always platform-free but sat in a
+module that also owned Room and the API client, so they could not move without
+it. Extracting the ports is what ADR-0022's layering already implied; KMP is
+what finally forced it.
+
+**Targets: `jvm()` only, for now.** The desktop target is the one non-Android
+platform this build can compile and test on any host, so it is the one that gets
+declared. iOS is not declared — a target that is configured but never built is a
+claim the build cannot back up, and adding it needs a macOS machine in CI before
+it means anything.
+
+**Consequences.** Android consumers resolve the `jvm` variant of the
+multiplatform modules through Kotlin's platform compatibility rules, so nothing
+downstream changed when `:core:model` and `:core:domain` moved. That is what
+makes the incremental order possible at all.
+
+The cost is a tree that is *partly* multiplatform for a while, which is a real
+state to be in and not a comfortable one: `:core:domain` is `commonMain` while
+`:core:data` right below it is Android-only, so the ports are portable and
+nothing that implements them is. Until step 3 lands, "multiplatform" describes
+the build, not yet the app.
+
+One deferred piece worth naming: the use-case tests still live in
+`:core:data/src/test`, not with the code they exercise. They depend on
+`:core:testing`'s fakes, and `:core:testing` is an Android library, so the tests
+cannot follow the use cases into `commonTest` until it moves too. They still run
+and still cover the domain; they are just in the wrong module.
+
+**Review when:** `:core:data` reaches `commonMain`. At that point the desktop
+target has a real data layer behind it, and whether the UI follows via Compose
+Multiplatform stops being hypothetical.
