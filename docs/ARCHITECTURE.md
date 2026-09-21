@@ -47,11 +47,16 @@ Module graph (arrows = "depends on"):
       │          └──▶ :core:model, :core:data, :core:ui, :core:designsystem
       └──▶ :core:model, :core:data, :core:ui, :core:designsystem
 
-    :core:data          ──▶ :core:model                    (pure Kotlin, no Android)
-    :core:model         ──▶ (nothing)                      (pure Kotlin)
+    :core:data          ──▶ :core:model, :core:domain      (Android)
+    :core:domain        ──▶ :core:model                    (multiplatform: common + jvm)
+    :core:model         ──▶ (nothing)                      (multiplatform: common + jvm)
     :core:ui            ──▶ :core:model, :core:data
     :core:designsystem  ──▶ :core:model, :core:ui
     :core:testing       ──▶ :core:model, :core:data, :core:ui  (test-only; nothing depends on it in `main`)
+
+`:core:model` and `:core:domain` are Kotlin Multiplatform modules whose code
+lives in `commonMain`; everything else is still Android-only. See ADR-0028 for
+how far the migration has reached and what is left.
 
 Rules:
 
@@ -72,7 +77,9 @@ Rules:
 - `:app` is the **composition root only**: `Application`, `MainActivity`, the
   `NavDisplay` and its back stack. No screens, ViewModels, use cases, entities
   or feature-specific DI modules.
-- `:core:data` owns the repository, the API service, Room, and the use cases
+- `:core:domain` owns the use cases, `CatRepository` and `ImageDownloader` —
+  the ports, with no implementation and no platform. `:core:data` implements them.
+- `:core:data` owns the repository implementation, the API service and Room
   that wrap the repository — this project does not split those into separate
   domain/data/database modules; see ADR-0022's **Alternatives rejected** for
   why a finer split was not worth it at two features.

@@ -19,6 +19,9 @@ room {
 
 dependencies {
     implementation(project(":core:model"))
+    // `api`: CatRepository, ImageDownloader and the use cases are this module's public
+    // surface as far as every consumer is concerned.
+    api(project(":core:domain"))
 
     implementation(libs.androidx.core.ktx)
 

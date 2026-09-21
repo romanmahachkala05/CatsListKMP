@@ -18,15 +18,16 @@ pull request at a time, with the build green at every commit.
 
 ## Architecture
 
-Eight Gradle modules, Clean Architecture, one direction of dependency:
+Nine Gradle modules, Clean Architecture, one direction of dependency:
 
 ```
-:app  ──►  :feature:feed, :feature:favorites  ──►  :core:model, :core:data,
-                                                     :core:ui, :core:designsystem
+:app  ──►  :feature:feed, :feature:favorites  ──►  :core:model, :core:domain,
+                                     :core:data, :core:ui, :core:designsystem
 ```
 
-`:core:model` knows nothing about Android — no SDK, no Compose, no Room, no
-Koin. `:core:data` implements the repository a use case declares. Each feature
+`:core:model` and `:core:domain` are Kotlin Multiplatform modules and know
+nothing about Android — no SDK, no Compose, no Room, no Koin. `:core:data`
+implements the repository a use case declares. Each feature
 module exposes exactly two public things, its `NavKey` and one entry
 `@Composable`; everything else — ViewModel, StateHolder, ErrorHandler — is
 `internal`, enforced by the compiler rather than by convention.
