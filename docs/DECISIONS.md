@@ -1221,7 +1221,15 @@ follows dependencies, not enthusiasm:
    move plus a convention plugin.
 3. `:core:data` — Room, the HTTP engine, and `DownloadManager` all need
    `expect`/`actual`. Not yet done.
-4. The UI, via Compose Multiplatform. Not yet done.
+4. The UI, via Compose Multiplatform. Not yet done. Checked rather than
+   assumed, though: Compose Multiplatform 1.12.0 compiles a `commonMain`
+   Composable for the JVM against this project's Kotlin 2.3.21, and every
+   library the UI depends on — `navigation3-runtime`, `navigation3-ui`,
+   `paging-compose`, `lifecycle-viewmodel-compose`,
+   `lifecycle-viewmodel-navigation3` — already publishes `common`, `jvm` and
+   `native` variants. The obstacle is size, not feasibility: ~3,300 lines across
+   four modules, 50 `R.string` lookups to move to Compose resources, the Compose
+   UI test rules, and a desktop entry point.
 
 `:core:domain` is a new module, split out of `:core:data`. The use cases,
 `CatRepository` and `ImageDownloader` were always platform-free but sat in a
