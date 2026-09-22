@@ -5,10 +5,11 @@ on:
   # economy and behaves as a hole: a stacked PR — one based on the branch below it
   # rather than on dev — matched nothing and ran no checks at all (ADR-0034).
   pull_request:
-  # dev itself is verified too, so a bad merge is caught even when every PR into
-  # it was green on its own base.
+  # main itself is verified too, so a bad merge is caught even when every PR into
+  # it was green on its own base. `main`, not the Android repo's `dev`: copied
+  # verbatim, this filter matched no branch here and main never ran CI.
   push:
-    branches: [dev]
+    branches: [main]
 
 # A new push supersedes the run it interrupted; nothing is learned from finishing
 # the old one.
@@ -44,7 +45,8 @@ jobs:
       # so a red check here can be reproduced without translating YAML back
       # into Gradle tasks. See docs/DECISIONS.md ADR-0018.
       - name: Verify
-        run: ./gradlew verify
+        # --stacktrace: a worker failure otherwise reports only the task name, with no cause.
+        run: ./gradlew verify --stacktrace
 
       - name: Upload test reports
         if: failure()
