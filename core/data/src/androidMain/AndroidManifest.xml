@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    ConnectivityNetworkMonitor is here, so the permission it needs is declared here and merges
+    up into whatever app uses this module. Declaring it in :app instead compiles and ships
+    correctly, but leaves this module's own lint run — which sees no app manifest — reporting
+    every ConnectivityManager call as unpermitted (this repo's ADR-0030).
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+</manifest>

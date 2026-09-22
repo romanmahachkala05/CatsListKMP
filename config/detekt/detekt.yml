@@ -34,6 +34,11 @@ complexity:
     # raised instead (ADR-0026).
     allowedConstructorParameters: 8
 
+  TooManyFunctions:
+    # One test method per case is the point, not a smell — same rationale as MagicNumber
+    # below, and the same fix for the same reason (ADR-0036).
+    excludes: *testSources
+
 style:
   MagicNumber:
     # `val Purple40 = Color(0xFF6650a4)` — the property is the name, so extracting a

@@ -9,8 +9,9 @@ material = "1.14.0"
 lifecycle = "2.11.0"
 ktor = "3.6.0"
 # Ktor's OkHttp engine and Coil each bring their own OkHttp, so the version is pinned here
-# rather than left to whichever asks first — the "two OkHttpClients, unpinned" loose end of
-# ADR-0006.
+# rather than left to whichever asks first. They now share one client as well as one version
+# (ADR-0030, which replaces ADR-0026's Retrofit+Coil sharing now that Ktor has replaced
+# Retrofit — ADR-0027).
 okhttp = "5.5.0"
 coilBom = "3.6.3"
 kotlinxCollectionsImmutable = "0.5.2"
@@ -59,6 +60,9 @@ ktor-client-content-negotiation = { module = "io.ktor:ktor-client-content-negoti
 ktor-serialization-kotlinx-json = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktor" }
 ktor-client-mock = { module = "io.ktor:ktor-client-mock", version.ref = "ktor" }
 coil-bom = { module = "io.coil-kt.coil3:coil-bom", version.ref = "coilBom" }
+# The singleton ImageLoader lives in `coil`; ImageLoader/PlatformContext in `coil-core`.
+coil = { module = "io.coil-kt.coil3:coil" }
+coil-core = { module = "io.coil-kt.coil3:coil-core" }
 coil-compose = { module = "io.coil-kt.coil3:coil-compose" }
 coil-network-okhttp = { module = "io.coil-kt.coil3:coil-network-okhttp" }
 androidx-room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }
@@ -103,6 +107,9 @@ androidx-paging-testing = { module = "androidx.paging:paging-testing", version.r
 # artifacts as regular dependencies, not just the [plugins] aliases a build script uses.
 android-gradlePlugin = { module = "com.android.tools.build:gradle", version.ref = "agp" }
 kotlin-gradlePlugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
+# The Compose compiler's own Gradle plugin, separate from kotlin-gradle-plugin. Needed on the
+# convention classpath to configure its `composeCompiler { }` extension (ADR-0029).
+compose-gradlePlugin = { module = "org.jetbrains.kotlin:compose-compiler-gradle-plugin", version.ref = "kotlin" }
 # The plugin marker coordinate, not the (differently-named) implementation module — this form
 # always resolves regardless of what the real artifact is called underneath.
 ktlint-gradlePlugin = { module = "org.jlleitschuh.gradle.ktlint:org.jlleitschuh.gradle.ktlint.gradle.plugin", version.ref = "ktlint" }

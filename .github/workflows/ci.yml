@@ -1,8 +1,10 @@
 name: CI
 
 on:
+  # Every pull request, whatever it targets. Filtering by base branch reads as an
+  # economy and behaves as a hole: a stacked PR — one based on the branch below it
+  # rather than on dev — matched nothing and ran no checks at all (ADR-0034).
   pull_request:
-    branches: [dev, master]
   # dev itself is verified too, so a bad merge is caught even when every PR into
   # it was green on its own base.
   push:

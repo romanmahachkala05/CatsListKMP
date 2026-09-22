@@ -1,5 +1,6 @@
 package com.example.catslist.data.di
 
+import com.example.catslist.data.error.ErrorMapper
 import com.example.catslist.data.local.CatDatabase
 import com.example.catslist.data.remote.CatApiService
 import com.example.catslist.data.remote.KtorCatApiService
@@ -19,9 +20,10 @@ import org.koin.dsl.module
 val IoDispatcher = named("io")
 
 /**
- * The three things a platform has to answer for: where the database file lives, which HTTP
- * engine to drive, and how to download an image. Everything else in this module is the same
- * everywhere.
+ * What a platform has to answer for: where the database file lives, which HTTP engine to
+ * drive (and the [okhttp3.OkHttpClient] it and Coil share, on the platforms that have one),
+ * how to download an image, and how [com.example.catslist.domain.NetworkMonitor] is
+ * implemented. Everything else in this module is the same everywhere.
  */
 expect val platformDataModule: Module
 
@@ -37,7 +39,11 @@ val dataModule = module {
     single { catHttpClient(get()) }
     factory<CatApiService> { KtorCatApiService(get()) }
 
-    single<CatRepository> { CatRepositoryImpl(catDao = get(), catApiService = get()) }
+    single { ErrorMapper(networkMonitor = get()) }
+
+    single<CatRepository> {
+        CatRepositoryImpl(catDao = get(), catApiService = get(), errorMapper = get())
+    }
 
     factory { GetCatFeedUseCase(get()) }
     factory { GetFavoriteCatsUseCase(get()) }

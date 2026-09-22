@@ -35,6 +35,13 @@ CI can supply the same four values as `CATSLIST_STOREFILE`,
    ```
 
    An `app-release-unsigned.apk` means the keystore was not picked up.
+
+   The release build runs R8 (`isMinifyEnabled`, `isShrinkResources`), which
+   takes the APK from 13.6 MB to 2.3 MB. There are no hand-written keep rules —
+   Room, Koin, kotlinx.serialization, Ktor and Coil all ship their own, and
+   a rule that is never exercised is worse than none. Because R8 failures show
+   up at runtime rather than at build time, check the minified APK on a device
+   (feed, favorites across a restart, download) before tagging.
 5. **Tag `master`** and push the tag:
 
    ```bash
@@ -45,9 +52,6 @@ CI can supply the same four values as `CATSLIST_STOREFILE`,
 
 ## Known limitations
 
-- **R8 is off** (`isMinifyEnabled = false`), so the APK is neither shrunk nor
-  obfuscated. Deliberate for now: keep rules that are never exercised are worse
-  than none, so R8 gets turned on and verified as its own change.
 - Nothing publishes to Play. The GitHub release is the distribution point.
 - Neither the release build nor the instrumented tests run in CI
   ([ADR-0018](docs/DECISIONS.md#adr-0018)).

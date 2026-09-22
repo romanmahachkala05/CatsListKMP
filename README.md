@@ -1,5 +1,7 @@
 # CatsList
 
+<img src="docs/images/app-icon.png" width="88" alt="CatsList app icon" style="float: right;">
+
 [![CI](https://github.com/romanmahachkala05/CatsListApplication/actions/workflows/ci.yml/badge.svg?branch=dev)](https://github.com/romanmahachkala05/CatsListApplication/actions/workflows/ci.yml)
 
 An endless feed of cats from [TheCatAPI](https://developers.thecatapi.com/), with
@@ -28,7 +30,10 @@ Nine Gradle modules, Clean Architecture, one direction of dependency:
 `:core:model`, `:core:domain` and `:core:data` are Kotlin Multiplatform modules,
 building for Android and for the JVM (desktop). The first two know nothing about
 Android at all; `:core:data` implements the repository a use case declares and
-splits on three seams — the database path, the HTTP engine, and image download. Each feature
+splits on three seams — the database path, the HTTP engine, and image download.
+It is also the only layer that knows what a `SocketTimeoutException` or an HTTP
+429 means: everything crossing out of it is an `AppError`, so no screen branches
+on an exception class ([ADR-0032](docs/DECISIONS.md#adr-0032)). Each feature
 module exposes exactly two public things, its `NavKey` and one entry
 `@Composable`; everything else — ViewModel, StateHolder, ErrorHandler — is
 `internal`, enforced by the compiler rather than by convention.
@@ -57,7 +62,7 @@ different reason than ADR-0001 predicted).
 | Navigation | Navigation 3 (`NavDisplay`, typed `NavKey`s) |
 | DI | Koin |
 | Async | Coroutines, Flow |
-| Network | Ktor |
+| Network | Ktor, OkHttp engine — one client, shared with Coil |
 | Multiplatform | Android + JVM (desktop); iOS not yet |
 | Storage | Room, with real migrations and committed schemas — favorites only |
 | Pagination | Paging 3, paging the feed straight from the network |
@@ -66,16 +71,17 @@ different reason than ADR-0001 predicted).
 
 ## Tests
 
-**51 unit tests, 15 instrumented.** No mocking library — every test double is a
+**76 unit tests, 37 instrumented.** No mocking library — every test double is a
 real in-memory implementation ([ADR-0012](docs/DECISIONS.md#adr-0012)). Tests
 live beside the code they test — in the same Gradle module, same package —
 rather than in one shared test source set.
 
-The instrumented ones are not optional extras. They are the only place three
-data-loss failures can be checked, because all three are Room behavior that no
-JVM fake reproduces: that `@Transaction` really serializes concurrent writes,
-that `MIGRATION_2_3` copies every column, and that a v1 database opens instead
-of crashing.
+The instrumented ones are not optional extras. Three data-loss failures can be
+checked nowhere else, because all three are Room behavior that no JVM fake
+reproduces: that `@Transaction` really serializes concurrent writes, that
+`MIGRATION_2_3` copies every column, and that a v1 database opens instead of
+crashing. The rest are Compose UI tests — which branch each screen shows for a
+given load state, and what its cards emit when tapped.
 
 Each bug fix in this project was reproduced before being fixed, and every fix
 was checked by reverting it to confirm the new test fails — a test that cannot
@@ -84,9 +90,9 @@ fail proves nothing.
 ## Engineering notes
 
 The interesting part of this repo is not the cat list. It is
-[`docs/DECISIONS.md`](docs/DECISIONS.md): 23 decision records with the rejected
-alternative and the consequences, including two decisions superseded by a
-later one. A sample:
+[`docs/DECISIONS.md`](docs/DECISIONS.md): 36 decision records with the rejected
+alternative and the consequences, including four superseded by a later one and
+one amended by two. A sample:
 
 - **[ADR-0014](docs/DECISIONS.md#adr-0014)** — a double tap on the favorite
   button crashed the app. `OnConflictStrategy.REPLACE` would have stopped the
@@ -106,6 +112,18 @@ later one. A sample:
 - **[ADR-0001 → ADR-0022](docs/DECISIONS.md#adr-0001)** — single-module was a
   decision with a stated trigger for splitting; the split happened for a
   related but different reason than the one that was written down.
+- **[ADR-0032](docs/DECISIONS.md#adr-0032)** — every failure showed one
+  message, so a rate-limited feed told the user to check a connection that was
+  working. Telling "offline" from "server unreachable" turns out to need a
+  connectivity stream ([ADR-0031](docs/DECISIONS.md#adr-0031)) consulted at the
+  moment of failure, not a boolean checked before the request.
+- **[ADR-0033](docs/DECISIONS.md#adr-0033)** — the Compose compiler's own
+  stability report, not a guess: `Cat` was unstable because `:core:model` has no
+  Compose compiler, so every card in the feed compared by identity against a
+  freshly copied instance and none of them could skip.
+- **[ADR-0018 → ADR-0035](docs/DECISIONS.md#adr-0035)** — a documented gate that
+  was never actually configured, and a tier split that quietly assumed
+  compiling a test needed the same device as running it.
 
 Several of those were introduced during this rebuild, not inherited. They are
 recorded because finding them was the work.
@@ -121,11 +139,16 @@ cd CatsListApplication
 JDK 17. No API key required — TheCatAPI's search endpoint is open.
 
 ```bash
-./gradlew verify           # assemble + every unit test. No device needed.
-./gradlew verifyOnDevice   # the above + instrumented tests. Needs a device.
+./gradlew verify           # assemble, every unit test, and compile the instrumented ones. No device needed.
+./gradlew verifyOnDevice   # the above + running the instrumented tests. Needs a device.
 ```
 
-`verify` runs on every pull request and is a required check on `dev`.
+`verify` builds each module's instrumented test APK even though it cannot run
+it, because compiling those tests needs no device and not compiling them let
+three of them break unnoticed ([ADR-0035](docs/DECISIONS.md#adr-0035)).
+
+`verify` runs on every pull request — whatever branch it targets
+([ADR-0034](docs/DECISIONS.md#adr-0034)) — and is a required check on `dev`.
 
 ## Documentation
 
@@ -136,8 +159,19 @@ JDK 17. No API key required — TheCatAPI's search endpoint is open.
 
 ## Known gaps
 
-Tracked honestly rather than hidden: no app icon, `minifyEnabled` is off for
-release ([RELEASING.md](RELEASING.md#known-limitations)), the instrumented
-tests do not yet run in CI ([ADR-0018](docs/DECISIONS.md#adr-0018)), and Coil
-and Ktor's OkHttp engine still build two separate `OkHttpClient` instances
-rather than sharing one configured client ([ADR-0006](docs/DECISIONS.md#adr-0006)).
+Tracked honestly rather than hidden: the instrumented tests do not yet run in
+CI, which is why `verifyOnDevice` is a local step before a release
+([ADR-0018](docs/DECISIONS.md#adr-0018)). `verify` now at least compiles them
+([ADR-0035](docs/DECISIONS.md#adr-0035)), so what a device is still needed for
+is an assertion that compiles and is wrong.
+
+The "Failure and recovery" screenshot above predates
+[ADR-0032](docs/DECISIONS.md#adr-0032) and shows a message the app no longer
+has; it is regenerated on a device, so it is stale until the next run.
+
+Multiplatform-specific: iOS is not a declared target yet ([ADR-0029](docs/DECISIONS.md#adr-0029)),
+the desktop `NetworkMonitor` always reports online rather than watching the
+host's actual connectivity, and `ErrorMapper` still catches `java.net`/`java.io`
+types directly in `commonMain` — fine for the `jvm()`+`androidTarget()` this
+module targets today, not fine once a non-JVM target is real
+([ADR-0030](docs/DECISIONS.md#adr-0030)).

@@ -4,10 +4,12 @@ import androidx.paging.testing.asSnapshot
 import androidx.room.Room
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.example.catslist.data.error.ErrorMapper
 import com.example.catslist.data.local.CatDatabase
 import com.example.catslist.data.remote.CatApiService
 import com.example.catslist.data.remote.CatDto
 import com.example.catslist.domain.model.Cat
+import com.example.catslist.testing.FakeNetworkMonitor
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -31,7 +33,7 @@ class CatRepositoryImplTest {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         database = Room.inMemoryDatabaseBuilder(context, CatDatabase::class.java).build()
         api = FakeApi()
-        repository = CatRepositoryImpl(database.catDao(), api)
+        repository = CatRepositoryImpl(database.catDao(), api, ErrorMapper(FakeNetworkMonitor()))
     }
 
     @After

@@ -9,6 +9,7 @@ import com.example.catslist.presentation.FAVORITE_FAILED
 import com.example.catslist.presentation.RetryableFlow
 import com.example.catslist.presentation.SnackbarNotifier
 import com.example.catslist.presentation.StateOwner
+import com.example.catslist.presentation.asAppError
 import com.example.catslist.presentation.downloadCat
 import com.example.catslist.presentation.launchCatching
 import kotlinx.coroutines.flow.launchIn
@@ -25,7 +26,12 @@ internal class FavoriteCatsViewModel(
     StateOwner<FavoriteCatsState> by stateHolder {
 
     // Without this a throwing Room query would escape viewModelScope and kill the process.
-    private val favorites = RetryableFlow(source = { getFavoriteCats() }, onFailure = errorHandler::onFavoritesFailure)
+    // `asAppError` unwraps what the repository classified; the handler never sees a raw
+    // exception class (ADR-0028).
+    private val favorites = RetryableFlow(
+        source = { getFavoriteCats() },
+        onFailure = { errorHandler.onFavoritesFailure(it.asAppError()) },
+    )
 
     init {
         favorites.flow

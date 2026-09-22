@@ -20,9 +20,9 @@ dependencies {
 
     implementation(platform(libs.coil.bom))
     implementation(libs.coil.compose)
-    // Coil auto-registers its network fetcher via ServiceLoader from whatever module declares
-    // it — AsyncImage lives here, so the fetcher belongs here too, not in :app.
-    implementation(libs.coil.network.okhttp)
+    // No network fetcher here: :app registers one explicitly over the shared OkHttpClient
+    // (ADR-0026). This module's own instrumented tests load `file://` URLs, which Coil
+    // serves without one.
 
     androidTestImplementation(project(":core:testing"))
     androidTestImplementation(libs.androidx.junit)

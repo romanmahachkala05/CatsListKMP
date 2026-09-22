@@ -1,9 +1,9 @@
 package com.example.catslist.presentation.favoritecats
 
+import com.example.catslist.domain.model.AppError
 import com.example.catslist.feature.favorites.R
 import com.example.catslist.presentation.UiText
 import com.google.common.truth.Truth.assertThat
-import java.io.IOException
 import org.junit.Test
 
 class FavoriteCatsErrorHandlerTest {
@@ -13,7 +13,7 @@ class FavoriteCatsErrorHandlerTest {
 
     @Test
     fun `a broken favorites stream becomes an error on screen`() {
-        errorHandler.onFavoritesFailure(IOException("database is corrupt"))
+        errorHandler.onFavoritesFailure(AppError.Storage)
 
         assertThat(stateHolder.state.value.status).isEqualTo(
             FavoriteCatsUiStatus.Error(UiText.Resource(R.string.favoritecats_error_loading_favorites)),
