@@ -22,11 +22,11 @@ fun releaseSigningValue(key: String): String? =
 val hasReleaseSigning = listOf("storeFile", "storePassword", "keyAlias", "keyPassword")
     .all { !releaseSigningValue(it).isNullOrBlank() }
 
-// versionCode is derived from the name, so the two cannot drift apart. Minor and patch are
-// allowed 0-99 each.
-val versionMajor = 2
-val versionMinor = 3
-val versionPatch = 0
+// The version lives in gradle.properties, shared with the desktop installers. versionCode is
+// derived from it, so the two cannot drift apart. Minor and patch are allowed 0-99 each.
+val (versionMajor, versionMinor, versionPatch) = providers.gradleProperty("catslist.version").get()
+    .split('.')
+    .map(String::toInt)
 
 android {
     namespace = "com.example.catslist"

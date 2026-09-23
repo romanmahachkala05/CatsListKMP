@@ -20,13 +20,13 @@ CI can supply the same four values as `CATSLIST_STOREFILE`,
 
 ## Cutting a release
 
-1. **Bump the version** in `app/build.gradle.kts` — only `versionMajor`,
-   `versionMinor`, `versionPatch`. `versionCode` and `versionName` are derived
-   from them ([ADR-0021](docs/DECISIONS.md#adr-0021)), so there is no second
-   number to remember.
+1. **Bump the version** — `catslist.version` in `gradle.properties`, the one
+   number both apps ship. Android's `versionCode` and `versionName` are derived
+   from it ([ADR-0021](docs/DECISIONS.md#adr-0021)), and it is the desktop
+   installers' version, so there is no second number to remember.
 2. **Merge to `dev`** as usual, with CI green.
-3. **Merge `dev` into `master`** via a pull request, so the release commit is on
-   `master` and has passed the same gate.
+3. **Merge `dev` into `main`** via a pull request, so the release commit is on
+   `main` and has passed the same gate.
 4. **Build and check the signature:**
 
    ```bash
@@ -42,16 +42,26 @@ CI can supply the same four values as `CATSLIST_STOREFILE`,
    a rule that is never exercised is worse than none. Because R8 failures show
    up at runtime rather than at build time, check the minified APK on a device
    (feed, favorites across a restart, download) before tagging.
-5. **Tag `master`** and push the tag:
+5. **Tag `main`** and push the tag:
 
    ```bash
    git tag -a v2.0.0 -m "v2.0.0"
    git push origin v2.0.0
    ```
-6. **Create the GitHub release** from the tag and attach the signed APK.
+6. **Publish the draft release.** The tag runs `.github/workflows/release.yml`,
+   which builds the desktop installers — MSI on Windows, DMG on macOS, DEB on
+   Linux, each on its own runner, since jpackage cannot build for another OS —
+   and the release APK, then drafts a GitHub release with all four attached.
+   Check the notes and the files, replace the APK with the locally signed one
+   if CI had no keystore, and publish.
+
+   The desktop installers are unsigned: Windows SmartScreen and macOS
+   Gatekeeper will warn on first launch. Signing them needs a code-signing
+   certificate and an Apple Developer ID, neither of which this project has.
 
 ## Known limitations
 
-- Nothing publishes to Play. The GitHub release is the distribution point.
+- Nothing publishes to Play or to any desktop store. The GitHub release is the
+  distribution point.
 - Neither the release build nor the instrumented tests run in CI
   ([ADR-0018](docs/DECISIONS.md#adr-0018)).
