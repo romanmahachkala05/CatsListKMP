@@ -2,8 +2,8 @@ package com.example.catslist.presentation.favoritecats
 
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -14,6 +14,7 @@ import com.example.catslist.domain.model.Cat
 import com.example.catslist.feature.favorites.resources.Res
 import com.example.catslist.feature.favorites.resources.favoritecats_empty_message
 import com.example.catslist.presentation.UiText
+import com.example.catslist.presentation.components.CatGridCells
 import com.example.catslist.presentation.components.CatItem
 import com.example.catslist.presentation.components.CatListPlaceholder
 import com.example.catslist.presentation.components.EmptyMessage
@@ -54,7 +55,8 @@ internal fun FavoriteCatsContent(
 ) {
     Surface(modifier = modifier.fillMaxSize()) {
         when (val status = state.status) {
-            FavoriteCatsUiStatus.Content -> LazyColumn(
+            FavoriteCatsUiStatus.Content -> LazyVerticalGrid(
+                columns = CatGridCells,
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = contentPadding,
             ) {

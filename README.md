@@ -30,7 +30,8 @@ Eleven Gradle modules, Clean Architecture, one direction of dependency:
 Everything below the two entry points is Kotlin Multiplatform, building for
 Android and for the JVM (desktop) — the screens included, in Compose
 Multiplatform. `:app` and `:desktopApp` are an Activity and a window around the
-same `CatsApp()`. `:core:model` and `:core:domain` know nothing about
+same `CatsApp()`, which adapts to the window: one column under a bottom bar on a
+phone, a grid of two to four beside a navigation rail on anything wider. `:core:model` and `:core:domain` know nothing about
 Android at all; `:core:data` implements the repository a use case declares and
 splits on three seams — the database path, the HTTP engine, and image download.
 It is also the only layer that knows what a `SocketTimeoutException` or an HTTP

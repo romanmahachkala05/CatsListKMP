@@ -6,8 +6,9 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyGridItemSpanScope
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -35,6 +36,7 @@ import com.example.catslist.feature.feed.resources.catslist_empty_message
 import com.example.catslist.feature.feed.resources.catslist_error_favorites_unavailable
 import com.example.catslist.presentation.UiText
 import com.example.catslist.presentation.asAppError
+import com.example.catslist.presentation.components.CatGridCells
 import com.example.catslist.presentation.components.CatItem
 import com.example.catslist.presentation.components.CatItemPlaceholder
 import com.example.catslist.presentation.components.CatListPlaceholder
@@ -141,11 +143,15 @@ private fun CatsFeed(
         modifier = Modifier.fillMaxSize(),
         topInset = contentPadding.calculateTopPadding(),
     ) {
-        LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = contentPadding) {
+        LazyVerticalGrid(
+            columns = CatGridCells,
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = contentPadding,
+        ) {
             when (val favorites = state.favoritesStatus) {
                 CatsListFavoritesStatus.Live -> Unit
                 // Above the cats, not in place of them: only the star icons are stale.
-                is CatsListFavoritesStatus.Unavailable -> item {
+                is CatsListFavoritesStatus.Unavailable -> item(span = FULL_ROW) {
                     ListNotice {
                         Text(
                             text = favorites.message.resolve(),
@@ -172,7 +178,7 @@ private fun CatsFeed(
             when (val append = pagingItems.loadState.append) {
                 // The next card's skeleton, so the page swaps shimmer for photo in place.
                 is LoadState.Loading -> item { CatItemPlaceholder() }
-                is LoadState.Error -> item {
+                is LoadState.Error -> item(span = FULL_ROW) {
                     ListNotice {
                         Text(
                             // Classified the same way as a failed refresh, so a rate-limited
@@ -192,6 +198,9 @@ private fun CatsFeed(
         }
     }
 }
+
+/** A notice spans the whole row, however many columns the grid has. */
+private val FULL_ROW: LazyGridItemSpanScope.() -> GridItemSpan = { GridItemSpan(maxLineSpan) }
 
 /** In-list stand-in for [ErrorMessage], which `fillMaxSize()`s and would take the viewport. */
 @Composable

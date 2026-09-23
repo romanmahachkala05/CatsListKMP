@@ -64,6 +64,7 @@ that fail without the fix. They are here because finding them was the work.
 | [0035](#adr-0035) | `verify` compiles the instrumented tests it cannot run | Accepted |
 | [0036](#adr-0036) | Porting v2.3.0 from the Android app: what changed on the way in | Accepted |
 | [0037](#adr-0037) | The UI moves to Compose Multiplatform, one module at a time | Accepted |
+| [0038](#adr-0038) | Adaptive layout: one grid rule, one width breakpoint | Accepted |
 
 ---
 
@@ -1888,3 +1889,46 @@ module only shows when the code needing it first runs.
 **Review when:** AGP's Kotlin Multiplatform library plugin and Compose resources
 stop agreeing — they are two separately versioned plugins meeting at the Android
 resource pipeline, which is where an upgrade of either would break first.
+
+---
+
+## ADR-0038
+
+### Adaptive layout: one grid rule, one width breakpoint
+
+**Context.** Until now every screen was one full-width column under a bottom bar,
+laid out for a phone held upright. A phone in landscape stretched each card into
+a strip the photo barely showed through, and the desktop app only looked right
+because its window opened phone-shaped. With desktop shipping and iOS (iPad
+included) next, "phone, portrait" stopped being the only case.
+
+**Decision.** Two rules, both in common code, so every platform gets them:
+
+- **Cats lay out in a grid, not a column.** The feed, favorites and their
+  loading skeleton are `LazyVerticalGrid`s sharing one column rule,
+  `CatGridCells` in `:core:designsystem`: as many columns as fit at 340dp. A
+  phone upright gets one, a phone on its side two, a wide desktop window three
+  or four. The feed stays on Paging — `LazyPagingItems` indexes a grid exactly
+  as it did a column — and its in-list notices span the full row.
+- **Navigation follows the window's width.** Below 600dp, Material's
+  compact/medium breakpoint, the floating bottom bar stays; from 600dp it
+  becomes a floating `NavigationRail` at the start edge, and the lists leave room
+  for it there the way they leave room for the bar at the bottom.
+
+The width is read with `BoxWithConstraints` around the scaffold rather than
+from `material3-adaptive`'s window size classes: one breakpoint does not need a
+dependency, and constraints are what a test can set.
+
+**Consequences.** Both rules are tested on desktop at fixed sizes: the bar at
+400dp and the rail at 1000dp (`CatsAppDesktopTest`), one card per row at 400dp
+and two side by side at 1000dp (`CatsListContentDesktopTest`).
+
+**Alternatives rejected.** `NavigationSuiteScaffold`, which switches between bar
+and rail by itself: it brings Material's standard bar and rail, and this app's
+are floating pills. A grid with a fixed column count per breakpoint: an
+adaptive minimum width gets the in-between widths — a narrow desktop window, a
+small tablet — right without listing them.
+
+**Review when:** a screen needs a layout that is not a list of cats — a detail
+pane beside the grid would be the case for `material3-adaptive`'s list-detail
+scaffolds.
