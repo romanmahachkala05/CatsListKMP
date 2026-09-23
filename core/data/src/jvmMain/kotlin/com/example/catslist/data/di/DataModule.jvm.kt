@@ -24,7 +24,7 @@ actual val platformDataModule: Module = module {
     single { catOkHttpClient() }
     single<HttpClientEngine> { OkHttp.create { preconfigured = get<OkHttpClient>() } }
 
-    single<NetworkMonitor> { DesktopNetworkMonitor() }
+    single<NetworkMonitor> { DesktopNetworkMonitor(ioDispatcher = get(IoDispatcher)) }
 
     factory<ImageDownloader> { DesktopImageDownloader(client = get(), ioDispatcher = get(IoDispatcher)) }
 }

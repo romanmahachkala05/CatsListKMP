@@ -166,8 +166,7 @@ CI, which is why `verifyOnDevice` is a local step before a release
 is an assertion that compiles and is wrong.
 
 Multiplatform-specific: iOS is not a declared target yet ([ADR-0029](docs/DECISIONS.md#adr-0029)),
-the desktop `NetworkMonitor` always reports online rather than watching the
-host's actual connectivity, and `ErrorMapper` still catches `java.net`/`java.io`
+and `ErrorMapper` still catches `java.net`/`java.io`
 types directly in `commonMain` — fine for the `jvm()`+`androidTarget()` this
 module targets today, not fine once a non-JVM target is real
 ([ADR-0030](docs/DECISIONS.md#adr-0030)).
