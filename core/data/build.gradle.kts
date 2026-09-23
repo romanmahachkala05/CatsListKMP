@@ -48,8 +48,7 @@ kotlin {
         }
 
         // JUnit4 and Truth are JVM-only, so the existing suite lives in the per-target test
-        // source sets rather than commonTest. `:core:testing` is an Android library, which
-        // is the other reason these cannot be common yet (ADR-0028).
+        // source sets rather than commonTest (ADR-0028).
         androidHostTest.dependencies {
             implementation(project(":core:testing"))
             implementation(libs.junit)
