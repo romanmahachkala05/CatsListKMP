@@ -28,7 +28,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
@@ -38,13 +37,19 @@ import androidx.navigation3.runtime.rememberDecoratedNavEntries
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
-import com.example.catslist.R
+import androidx.savedstate.serialization.SavedStateConfiguration
 import com.example.catslist.presentation.SnackbarNotifier
 import com.example.catslist.presentation.catslist.CatsListNavKey
 import com.example.catslist.presentation.catslist.CatsListScreen
 import com.example.catslist.presentation.favoritecats.FavoriteCatsNavKey
 import com.example.catslist.presentation.favoritecats.FavoriteCatsScreen
 import com.example.catslist.presentation.load
+import com.example.catslist.shared.resources.Res
+import com.example.catslist.shared.resources.catslist_nav_label
+import com.example.catslist.shared.resources.favoritecats_nav_label
+import kotlinx.serialization.modules.SerializersModule
+import kotlinx.serialization.modules.polymorphic
+import org.jetbrains.compose.resources.stringResource
 
 /**
  * Peer top-level destinations switched from the floating bottom bar, each with its own back
@@ -72,7 +77,7 @@ fun CatsNavDisplay(notifier: SnackbarNotifier, modifier: Modifier = Modifier) {
         // The content is not padded: the bar floats over it and each list takes the insets as
         // contentPadding instead. Both tabs' entries are remembered on every recomposition so
         // their decorators stay alive; NavDisplay renders only the selected tab's.
-        val catsListBackStack = rememberNavBackStack(CatsListNavKey)
+        val catsListBackStack = rememberNavBackStack(NAV_KEYS, CatsListNavKey)
         val catsListEntries = rememberDecoratedNavEntries(
             backStack = catsListBackStack,
             entryDecorators = listOf(
@@ -84,7 +89,7 @@ fun CatsNavDisplay(notifier: SnackbarNotifier, modifier: Modifier = Modifier) {
             },
         )
 
-        val favoriteCatsBackStack = rememberNavBackStack(FavoriteCatsNavKey)
+        val favoriteCatsBackStack = rememberNavBackStack(NAV_KEYS, FavoriteCatsNavKey)
         val favoriteCatsEntries = rememberDecoratedNavEntries(
             backStack = favoriteCatsBackStack,
             entryDecorators = listOf(
@@ -134,20 +139,34 @@ private fun FloatingBottomBar(
             icon = {
                 Icon(Icons.AutoMirrored.Filled.List, contentDescription = null, modifier = Modifier.size(ICON_SIZE))
             },
-            label = { Text(stringResource(R.string.catslist_nav_label), fontWeight = FontWeight.Normal) },
+            label = { Text(stringResource(Res.string.catslist_nav_label), fontWeight = FontWeight.Normal) },
             colors = navigationBarItemColors(),
         )
         NavigationBarItem(
             selected = selected == FavoriteCatsNavKey,
             onClick = { onSelect(FavoriteCatsNavKey) },
             icon = { Icon(Icons.Default.Star, contentDescription = null, modifier = Modifier.size(ICON_SIZE)) },
-            label = { Text(stringResource(R.string.favoritecats_nav_label), fontWeight = FontWeight.Normal) },
+            label = { Text(stringResource(Res.string.favoritecats_nav_label), fontWeight = FontWeight.Normal) },
             colors = navigationBarItemColors(),
         )
     }
 }
 
 private val BAR_SHAPE = RoundedCornerShape(50)
+
+/**
+ * Every [NavKey] the back stacks hold, registered for saving. On Android the back stack falls
+ * back to reflection to find a key's serializer; off Android there is no such fallback, and an
+ * unregistered key fails the first time the stack is saved — so each one is listed here.
+ */
+private val NAV_KEYS = SavedStateConfiguration {
+    serializersModule = SerializersModule {
+        polymorphic(NavKey::class) {
+            subclass(CatsListNavKey::class, CatsListNavKey.serializer())
+            subclass(FavoriteCatsNavKey::class, FavoriteCatsNavKey.serializer())
+        }
+    }
+}
 
 /** Labels keep the same on-surface color in both states; only the icon reflects selection. */
 @Composable

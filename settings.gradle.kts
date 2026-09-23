@@ -20,6 +20,7 @@ dependencyResolutionManagement {
 }
 rootProject.name = "CatsList"
 include(":app")
+include(":shared")
 include(":core:model")
 include(":core:domain")
 include(":core:data")

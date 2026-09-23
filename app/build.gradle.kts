@@ -5,7 +5,6 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     // Still needed after CatDto moved out: the NavKeys are @Serializable too, and without
     // the plugin that fails at runtime rather than at compile time.
-    alias(libs.plugins.kotlin.serialization)
     id("catslist.quality")
 }
 
@@ -91,29 +90,14 @@ java {
 }
 
 dependencies {
-    implementation(project(":core:data"))
-    implementation(project(":core:ui"))
-    implementation(project(":core:designsystem"))
-    implementation(project(":feature:feed"))
-    implementation(project(":feature:favorites"))
+    // The whole UI and the Koin module list; this module is only the Android entry point.
+    implementation(project(":shared"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
-    // Compose
     implementation(platform(libs.androidx.compose.bom))
-    implementation(libs.androidx.compose.ui)
-    implementation(libs.androidx.compose.ui.graphics)
-    implementation(libs.androidx.compose.ui.tooling.preview)
-    implementation(libs.androidx.compose.material3)
-    implementation(libs.androidx.compose.material.icons.core)
     implementation(libs.androidx.activity.compose)
-    debugImplementation(libs.androidx.compose.ui.tooling)
-    // Navigation 3
-    implementation(libs.androidx.navigation3.runtime)
-    implementation(libs.androidx.navigation3.ui)
-    implementation(libs.androidx.lifecycle.viewmodel.navigation3)
-    // Koin — App assembles the module graph; the ViewModel definitions themselves live
-    // in the feature modules.
+    // Koin — App starts it; the module list and every definition live in :shared and below.
     implementation(platform(libs.koin.bom))
     implementation(libs.koin.android)
     // App builds Coil's singleton loader over the one OkHttpClient the Koin graph provides,

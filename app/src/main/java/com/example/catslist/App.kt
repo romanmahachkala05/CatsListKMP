@@ -5,10 +5,6 @@ import coil3.ImageLoader
 import coil3.PlatformContext
 import coil3.SingletonImageLoader
 import coil3.network.okhttp.OkHttpNetworkFetcherFactory
-import com.example.catslist.data.di.dataModule
-import com.example.catslist.presentation.catslist.feedModule
-import com.example.catslist.presentation.di.uiModule
-import com.example.catslist.presentation.favoritecats.favoritesModule
 import okhttp3.OkHttpClient
 import org.koin.android.ext.android.get
 import org.koin.android.ext.koin.androidContext
@@ -16,9 +12,8 @@ import org.koin.android.ext.koin.androidLogger
 import org.koin.core.context.startKoin
 
 /**
- * The one place the module graph is assembled. Hilt aggregated `@InstallIn` modules across
- * Gradle modules by itself; Koin has no such step, so each module is listed here by hand and
- * a missing one fails at startup rather than at compile time (ADR-0026).
+ * Starts Koin with the module list every platform shares (`appModules`, in `:shared`), plus the
+ * Android `Context` the data layer's Android half needs.
  *
  * Also the place Coil's singleton loader is built, so the app has exactly one [OkHttpClient]
  * rather than one per library (ADR-0030). Wiring a singleton across two libraries is
@@ -34,7 +29,7 @@ class App :
             // Debug builds only: the logger reflects on every definition it prints.
             if (BuildConfig.DEBUG) androidLogger()
             androidContext(this@App)
-            modules(dataModule, uiModule, feedModule, favoritesModule)
+            modules(appModules)
         }
     }
 

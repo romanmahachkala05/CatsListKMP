@@ -1,7 +1,3 @@
 <resources>
     <string name="app_name">CatsList</string>
-
-    <!-- bottom bar labels: CatsNavDisplay lives here, the screens themselves do not -->
-    <string name="catslist_nav_label">Cats list</string>
-    <string name="favoritecats_nav_label">Favorites</string>
 </resources>
