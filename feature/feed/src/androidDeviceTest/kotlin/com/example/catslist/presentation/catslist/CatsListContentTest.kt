@@ -232,9 +232,6 @@ class CatsListContentTest {
     /** Strings are Compose resources (ADR-0037), read the way the app reads them. */
     private fun string(resource: StringResource) = runBlocking { getString(resource) }
 
-    /** `:core:designsystem`'s strings are Compose resources, read the way the app reads them. */
-    private fun designString(resource: StringResource) = runBlocking { getString(resource) }
-
     /** `:core:ui`'s strings are Compose resources, read the way the app reads them. */
     private fun errorText(error: AppError) = runBlocking { error.toUiText().load() }
 
