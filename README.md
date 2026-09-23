@@ -14,7 +14,7 @@ pull request at a time, with the build green at every commit.
 
 | Feed | Favorites | Failure and recovery |
 | --- | --- | --- |
-| ![Cats list](docs/images/cats-list.png) | ![Favorites](docs/images/favorites.png) | ![Error state with retry](docs/images/error-retry.png) |
+| <img src="docs/images/cats-list.png" width="250" alt="Cats list"/> | <img src="docs/images/favorites.png" width="250" alt="Favorites"/> | <img src="docs/images/error-retry.png" width="250" alt="Error state with retry"/> |
 
 ---
 
@@ -164,10 +164,6 @@ CI, which is why `verifyOnDevice` is a local step before a release
 ([ADR-0018](docs/DECISIONS.md#adr-0018)). `verify` now at least compiles them
 ([ADR-0035](docs/DECISIONS.md#adr-0035)), so what a device is still needed for
 is an assertion that compiles and is wrong.
-
-The "Failure and recovery" screenshot above predates
-[ADR-0032](docs/DECISIONS.md#adr-0032) and shows a message the app no longer
-has; it is regenerated on a device, so it is stale until the next run.
 
 Multiplatform-specific: iOS is not a declared target yet ([ADR-0029](docs/DECISIONS.md#adr-0029)),
 the desktop `NetworkMonitor` always reports online rather than watching the
