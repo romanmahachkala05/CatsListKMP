@@ -63,6 +63,7 @@ that fail without the fix. They are here because finding them was the work.
 | [0034](#adr-0034) | Run CI on every pull request; `verify` was never enforced | Accepted |
 | [0035](#adr-0035) | `verify` compiles the instrumented tests it cannot run | Accepted |
 | [0036](#adr-0036) | Porting v2.3.0 from the Android app: what changed on the way in | Accepted |
+| [0037](#adr-0037) | The UI moves to Compose Multiplatform, one module at a time | Accepted |
 
 ---
 
@@ -1785,3 +1786,55 @@ types are not built the way Retrofit's `HttpException` was.
 only up to the commit each merge actually pulls; the next one repeats this ADR's
 shape — merge, renumber past whatever this repo has claimed since, adapt what
 named a mechanism the fork replaced.
+
+---
+
+## ADR-0037
+
+### The UI moves to Compose Multiplatform, one module at a time
+
+**Context.** Step 4 of ADR-0028's order: the UI. ADR-0028 already checked that
+every library the screens use publishes common, JVM and native variants, so the
+question left was how, not whether. Two things made the "how" less obvious than
+moving files into `commonMain`: Android's `R` class, which every screen reads
+its strings and drawables through, has no multiplatform form; and the modules
+cannot all move at once without one unreviewable pull request.
+
+**Decision.** Compose Multiplatform (the `org.jetbrains.compose` plugin), applied
+through a new additive convention plugin, `catslist.kmp.compose`, next to
+`catslist.kmp.android.library`. Modules move bottom-up, the same order ADR-0028
+used for the data layer: `:core:ui` first, then `:core:testing`,
+`:core:designsystem`, `:feature:favorites`, `:feature:feed`.
+
+Strings and drawables move to **Compose resources**
+(`src/commonMain/composeResources/`), read through a generated `Res` class.
+Every module gets its own `Res`, in a package derived from its Gradle path
+(`:core:ui` → `com.example.catslist.core.ui.resources`) — the same
+no-collisions guarantee a per-namespace `R` gave. `Res` stays internal unless
+something outside the module has to name a resource.
+
+`UiText.Resource` holds a `StringResource` instead of an `@StringRes Int`. The
+non-composable `resolve(context)` becomes `suspend fun load()`: Compose resources
+are read from files, not from a `Context`, and reading a file suspends.
+
+**One transitional case.** Compose resources need the multiplatform plugin —
+tried and confirmed: in a `com.android.library` module the plugin generates no
+resource tasks. So while the features are still Android-only, their own strings
+can only be `R` ids, and `UiText` carries them as `UiText.AndroidResource`. It
+resolves on Android and throws on desktop, where nothing can create one. It goes
+when `:feature:feed`, the last module to move, does.
+
+**Consequences.** Desktop tests of anything that reads a resource need Skia's
+native library for the host OS — reading a string asks it for the system theme —
+so the convention plugin adds it to `jvmTest`. `:core:ui`'s tests now run there,
+including one that reads the real strings: Android's `strings.xml` escapes
+apostrophes and Compose resources does not, so a file copied verbatim would show
+backslashes, and only reading the text catches that.
+
+On Android, CMP's artifacts resolve to the androidx Compose ones, so the Compose
+BOM still decides what the app ships; nothing on the Android side changes
+version.
+
+**Review when:** AGP's Kotlin Multiplatform library plugin and Compose resources
+stop agreeing — they are two separately versioned plugins meeting at the Android
+resource pipeline, which is where an upgrade of either would break first.

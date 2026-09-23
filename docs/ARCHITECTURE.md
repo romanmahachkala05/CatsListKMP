@@ -50,14 +50,15 @@ Module graph (arrows = "depends on"):
     :core:data          ──▶ :core:model, :core:domain      (multiplatform: common + android + jvm)
     :core:domain        ──▶ :core:model                    (multiplatform: common + jvm)
     :core:model         ──▶ (nothing)                      (multiplatform: common + jvm)
-    :core:ui            ──▶ :core:model, :core:data
+    :core:ui            ──▶ :core:domain                    (multiplatform: common + android + jvm)
     :core:designsystem  ──▶ :core:model, :core:ui
     :core:testing       ──▶ :core:model, :core:data, :core:ui  (test-only; nothing depends on it in `main`)
 
-`:core:model`, `:core:domain` and `:core:data` are Kotlin Multiplatform modules.
-`:core:ui`, `:core:designsystem`, the features and `:app` are still Android-only —
-the UI moves with Compose Multiplatform, which has not happened yet. See ADR-0028
-for the migration order and ADR-0029 for what `:core:data`'s split looks like.
+`:core:model`, `:core:domain`, `:core:data` and `:core:ui` are Kotlin Multiplatform
+modules. `:core:designsystem`, the features and `:app` are still Android-only — the
+UI moves to Compose Multiplatform one module at a time, bottom-up (ADR-0037). See
+ADR-0028 for the migration order and ADR-0029 for what `:core:data`'s split looks
+like.
 
 Source sets in a multiplatform module are `commonMain` plus `androidMain`/`jvmMain`,
 and its tests are `commonTest`, `androidHostTest` (JVM, no device), `androidDeviceTest`
@@ -426,10 +427,14 @@ load; `PagingData` is exposed alongside `state` rather than inside it, because
       @Immutable
       sealed interface UiText {
           data class Raw(val value: String) : UiText
-          data class Resource(@StringRes val id: Int, val args: List<Any> = emptyList()) : UiText
-          data class Plural(@PluralsRes val id: Int, val count: Int) : UiText
+          data class Resource(val id: StringResource, val args: ImmutableList<Any>) : UiText
       }
       @Composable fun UiText.resolve(): String = when (this) { … }
+      suspend fun UiText.load(): String = when (this) { … }  // outside composition
+
+  Strings are Compose resources (`src/commonMain/composeResources/values/strings.xml`),
+  read through each module's generated `Res` (ADR-0037). Android-only modules still
+  pass `R.string` ids as the transitional `UiText.AndroidResource` until they move.
 
 - ViewModels / StateHolders / mappers **never** call `context.getString` — they
   put a `UiText` in state.

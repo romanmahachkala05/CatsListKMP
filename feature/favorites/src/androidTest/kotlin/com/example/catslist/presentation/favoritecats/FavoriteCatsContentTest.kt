@@ -173,7 +173,7 @@ class FavoriteCatsContentTest {
 
     private companion object {
         val twoCats = persistentListOf(cat("1", isFavorite = true), cat("2", isFavorite = true))
-        val errorMessage = UiText.Resource(R.string.favoritecats_error_loading_favorites)
+        val errorMessage = UiText.AndroidResource(R.string.favoritecats_error_loading_favorites)
         const val SETTLE_MILLIS = 1_000L
     }
 }

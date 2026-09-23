@@ -22,7 +22,7 @@ internal class CatsListErrorHandler(
      */
     override fun onFavoriteIdsFailure(error: AppError) {
         val message = when (error) {
-            AppError.Storage -> UiText.Resource(R.string.catslist_error_favorites_unavailable)
+            AppError.Storage -> UiText.AndroidResource(R.string.catslist_error_favorites_unavailable)
             else -> error.toUiText()
         }
         stateHolder.showFavoritesUnavailable(message)

@@ -1,12 +1,12 @@
 package com.example.catslist.presentation
 
-import android.content.Context
-import androidx.annotation.StringRes
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
-import androidx.compose.ui.res.stringResource
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
+import org.jetbrains.compose.resources.StringResource
+import org.jetbrains.compose.resources.getString
+import org.jetbrains.compose.resources.stringResource
 
 /**
  * UI text that does not know where it will be rendered. Only a Composable resolves it.
@@ -23,12 +23,23 @@ sealed interface UiText {
     ) : UiText
 
     data class Resource(
-        @param:StringRes val id: Int,
+        val id: StringResource,
         /**
          * [ImmutableList], not `List`: a raw `List` is an interface that could be a
          * `MutableList`, which made this class unstable by inference and the `@Immutable`
          * above a claim rather than a fact.
          */
+        val args: ImmutableList<Any> = persistentListOf(),
+    ) : UiText
+
+    /**
+     * An Android `R.string` id, for the modules that are still Android-only. Compose resources
+     * need the multiplatform plugin, so until `:feature:favorites` and `:feature:feed` move to
+     * `commonMain` their own strings can only be `R` ids. Transitional: it goes when they do,
+     * and nothing multiplatform may create one — on desktop it has nothing to resolve against.
+     */
+    data class AndroidResource(
+        val id: Int,
         val args: ImmutableList<Any> = persistentListOf(),
     ) : UiText
 }
@@ -38,11 +49,20 @@ sealed interface UiText {
 fun UiText.resolve(): String = when (this) {
     is UiText.Raw -> value
     is UiText.Resource -> stringResource(id, *args.toTypedArray())
+    is UiText.AndroidResource -> androidStringResource(id, args)
 }
 
-/** For resolving outside composition, such as inside a `LaunchedEffect`. */
+@Composable
+internal expect fun androidStringResource(id: Int, args: ImmutableList<Any>): String
+
+/**
+ * For resolving outside composition, such as inside a `LaunchedEffect`. Suspends because
+ * Compose resources are read from files rather than from an Android `Context`. An
+ * [UiText.AndroidResource] needs that `Context`, so on Android use the `load(context)` overload.
+ */
 @Suppress("SpreadOperator")
-fun UiText.resolve(context: Context): String = when (this) {
+suspend fun UiText.load(): String = when (this) {
     is UiText.Raw -> value
-    is UiText.Resource -> context.getString(id, *args.toTypedArray())
+    is UiText.Resource -> getString(id, *args.toTypedArray())
+    is UiText.AndroidResource -> error("An Android string id needs a Context: call load(context)")
 }

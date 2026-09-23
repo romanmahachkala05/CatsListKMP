@@ -54,7 +54,7 @@ class FavoriteCatsViewModelTest {
         val viewModel = viewModel()
 
         assertThat(viewModel.state.value.status).isEqualTo(
-            FavoriteCatsUiStatus.Error(UiText.Resource(R.string.favoritecats_error_loading_favorites)),
+            FavoriteCatsUiStatus.Error(UiText.AndroidResource(R.string.favoritecats_error_loading_favorites)),
         )
     }
 

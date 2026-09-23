@@ -45,7 +45,7 @@ import com.example.catslist.presentation.catslist.CatsListNavKey
 import com.example.catslist.presentation.catslist.CatsListScreen
 import com.example.catslist.presentation.favoritecats.FavoriteCatsNavKey
 import com.example.catslist.presentation.favoritecats.FavoriteCatsScreen
-import com.example.catslist.presentation.resolve
+import com.example.catslist.presentation.load
 
 /**
  * Peer top-level destinations switched from the floating bottom bar, each with its own back
@@ -60,7 +60,7 @@ fun CatsNavDisplay(notifier: SnackbarNotifier, modifier: Modifier = Modifier) {
 
     LaunchedEffect(notifier) {
         notifier.messages.collect { message ->
-            snackbarHostState.showSnackbar(message.resolve(context))
+            snackbarHostState.showSnackbar(message.load(context))
         }
     }
 

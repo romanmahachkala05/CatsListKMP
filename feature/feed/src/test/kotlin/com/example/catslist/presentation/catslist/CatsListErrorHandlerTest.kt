@@ -17,7 +17,7 @@ class CatsListErrorHandlerTest {
         errorHandler.onFavoriteIdsFailure(AppError.Storage)
 
         assertThat(stateHolder.state.value.favoritesStatus).isEqualTo(
-            CatsListFavoritesStatus.Unavailable(UiText.Resource(R.string.catslist_error_favorites_unavailable)),
+            CatsListFavoritesStatus.Unavailable(UiText.AndroidResource(R.string.catslist_error_favorites_unavailable)),
         )
     }
 

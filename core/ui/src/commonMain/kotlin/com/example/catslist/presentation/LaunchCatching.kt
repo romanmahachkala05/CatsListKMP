@@ -1,6 +1,5 @@
 package com.example.catslist.presentation
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.CancellationException
@@ -22,7 +21,7 @@ fun ViewModel.launchCatching(onFailure: suspend (Throwable) -> Unit, block: susp
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            Log.e(this@launchCatching::class.simpleName, "Event handling failed", e)
+            uiLogError(this@launchCatching::class.simpleName, "Event handling failed", e)
             onFailure(e)
         }
     }
