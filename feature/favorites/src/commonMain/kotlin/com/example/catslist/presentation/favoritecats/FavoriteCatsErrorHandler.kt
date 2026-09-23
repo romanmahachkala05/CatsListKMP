@@ -1,7 +1,8 @@
 package com.example.catslist.presentation.favoritecats
 
 import com.example.catslist.domain.model.AppError
-import com.example.catslist.feature.favorites.R
+import com.example.catslist.feature.favorites.resources.Res
+import com.example.catslist.feature.favorites.resources.favoritecats_error_loading_favorites
 import com.example.catslist.presentation.UiText
 import com.example.catslist.presentation.toUiText
 
@@ -21,7 +22,7 @@ internal class FavoriteCatsErrorHandler(
      */
     override fun onFavoritesFailure(error: AppError) {
         val message = when (error) {
-            AppError.Storage -> UiText.AndroidResource(R.string.favoritecats_error_loading_favorites)
+            AppError.Storage -> UiText.Resource(Res.string.favoritecats_error_loading_favorites)
             else -> error.toUiText()
         }
         stateHolder.showError(message)
