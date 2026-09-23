@@ -15,8 +15,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -166,14 +166,18 @@ private fun AsyncImagePainter.State.toImageStatus(): ImageStatus = when (this) {
 /** The skeleton shimmers; it has no text or role for a test to find it by. */
 const val CAT_LIST_PLACEHOLDER_TAG = "catListPlaceholder"
 
-/** A screenful of [CatItemPlaceholder]s for a screen waiting on its first cats. */
+/**
+ * A screenful of [CatItemPlaceholder]s for a screen waiting on its first cats, laid out by the
+ * same [CatGridCells] as the cats that replace it.
+ */
 @Composable
 fun CatListPlaceholder(
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(),
     count: Int = PLACEHOLDER_COUNT,
 ) {
-    LazyColumn(
+    LazyVerticalGrid(
+        columns = CatGridCells,
         modifier = modifier.fillMaxSize().testTag(CAT_LIST_PLACEHOLDER_TAG),
         contentPadding = contentPadding,
         userScrollEnabled = false,
@@ -238,11 +242,29 @@ private val NOTCH_HEIGHT = 42.dp
 private val NOTCH_CORNER = 20.dp
 private val NOTCH_SWEEP = 16.dp
 
-private const val PLACEHOLDER_COUNT = 2
+/**
+ * Enough to fill the widest grid's first row and then some; lazy, so a phone composes only the
+ * two it can show.
+ */
+private const val PLACEHOLDER_COUNT = 8
+
+/**
+ * Narrow enough that a 360dp phone still gets its one full-width column, wide enough that the
+ * notch's two buttons never crowd the photo.
+ */
+private val CARD_MIN_WIDTH = 340.dp
 
 /** Declared last: top-level initializers run in file order, and this one reads the rest. */
 private val CAT_CARD_SHAPE =
     CatCardShape(CARD_CORNER, NOTCH_WIDTH, NOTCH_HEIGHT, NOTCH_CORNER, NOTCH_SWEEP)
+
+/**
+ * The column rule every list of cats shares: as many columns as fit at [CARD_MIN_WIDTH], so a
+ * phone in portrait gets one, a phone in landscape or a tablet two, and a wide desktop window
+ * three or four. One rule in one place, so the feed, favorites and their skeleton always line
+ * up. Down here with [CAT_CARD_SHAPE], for the same reason.
+ */
+val CatGridCells: GridCells = GridCells.Adaptive(minSize = CARD_MIN_WIDTH)
 
 @Preview(name = "Not favorite", showBackground = true)
 @Composable
