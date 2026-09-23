@@ -1851,6 +1851,30 @@ On Android, CMP's artifacts resolve to the androidx Compose ones, so the Compose
 BOM still decides what the app ships; nothing on the Android side changes
 version.
 
+**The root UI is shared too.** `CatsNavDisplay`, a `CatsApp()` composable and
+the Koin module list (`appModules`) live in a multiplatform `:shared` module;
+`:app` keeps only `MainActivity` and `App`, and a desktop entry point needs no
+more than that either. Two things only showed up once the whole app ran on
+desktop, in `CatsAppDesktopTest`:
+
+- **ADR-0028's library check was one level too shallow.** Google's
+  `navigation3-ui` *does* publish a desktop variant — whose `NavDisplay` throws
+  "Implemented only in JetBrains fork". Off Android, Navigation 3's UI and its
+  ViewModel integration have to come from JetBrains
+  (`org.jetbrains.androidx.navigation3:navigation3-ui`,
+  `org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-navigation3`), which on
+  Android are built from the same source against Google's `navigation3-runtime`.
+  Publishing a variant is not the same as implementing one.
+- **Off Android, a back stack cannot find its keys' serializers by
+  reflection**, so every `NavKey` is registered in a `SavedStateConfiguration`
+  next to `CatsNavDisplay`. A key missing from it fails only when the stack is
+  saved — switching tabs does it, which is why the desktop test switches tabs.
+
+Koin's Compose integration remembers the global Koin it first sees, so a UI test
+that starts and stops Koin per test gets the previous test's closed scope. The
+desktop tests hand the composition a Koin of their own (`KoinIsolatedContext`)
+instead.
+
 **Review when:** AGP's Kotlin Multiplatform library plugin and Compose resources
 stop agreeing — they are two separately versioned plugins meeting at the Android
 resource pipeline, which is where an upgrade of either would break first.

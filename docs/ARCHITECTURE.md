@@ -43,9 +43,10 @@ none of the ceremony. Split when a real trigger shows up — see ADR-0001's
 
 Module graph (arrows = "depends on"):
 
-    :app  ──▶ :feature:feed, :feature:favorites
-      │          └──▶ :core:model, :core:data, :core:ui, :core:designsystem
-      └──▶ :core:model, :core:data, :core:ui, :core:designsystem
+    :app  ──▶ :shared
+    :shared  ──▶ :feature:feed, :feature:favorites          (multiplatform: common + android + jvm)
+      │          └──▶ :core:domain, :core:ui, :core:designsystem
+      └──▶ :core:data, :core:ui, :core:designsystem
 
     :core:data          ──▶ :core:model, :core:domain      (multiplatform: common + android + jvm)
     :core:domain        ──▶ :core:model                    (multiplatform: common + jvm)
@@ -54,8 +55,8 @@ Module graph (arrows = "depends on"):
     :core:designsystem  ──▶ :core:model, :core:ui          (multiplatform: common + android + jvm)
     :core:testing       ──▶ :core:model, :core:data, :core:ui  (multiplatform; test-only, nothing depends on it in `main`)
 
-Every `:core:*` and `:feature:*` module is Kotlin Multiplatform; only `:app` is
-still Android-only. The UI moved to Compose Multiplatform one module at a time,
+Every module but `:app` is Kotlin Multiplatform, and `:app` is only the Android
+entry point. The UI moved to Compose Multiplatform one module at a time,
 bottom-up (ADR-0037). See ADR-0028 for the migration order and ADR-0029 for what
 `:core:data`'s split looks like.
 
@@ -79,9 +80,11 @@ Rules:
   compiler error, not a warning), so the public `XxxScreen(modifier, contentPadding)`
   delegates to a `private` overload that takes the `internal` ViewModel; that
   private overload is where `koinViewModel()`'s default lives.
-- `:app` is the **composition root only**: `Application`, `MainActivity`, the
-  `NavDisplay` and its back stack. No screens, ViewModels, use cases, entities
-  or feature-specific DI modules.
+- `:shared` is the **root UI**: `CatsApp()`, `CatsNavDisplay` and its back
+  stacks, and `appModules`, the Koin module list. `:app` is the Android entry
+  point only: `Application` (starts Koin, builds Coil's loader) and
+  `MainActivity`. Neither holds screens, ViewModels, use cases or
+  feature-specific DI modules.
 - `:core:domain` owns the use cases, `CatRepository` and `ImageDownloader` —
   the ports, with no implementation and no platform. `:core:data` implements them.
 - `:core:data` owns the repository implementation, the API service and Room. It
