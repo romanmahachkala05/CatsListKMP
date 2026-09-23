@@ -44,11 +44,13 @@ class KmpComposeConventionPlugin : Plugin<Project> {
                         implementation(library("compose-mp-ui-tooling-preview"))
                     }
                 }
-                // Skia's native library for the machine running the tests. Even reading a
-                // string asks it for the system theme, so without this a desktop test that
-                // touches resources fails to initialise rather than failing an assertion.
+                // Desktop UI tests (`runComposeUiTest`), plus Skia's native library for the
+                // machine running them. Even reading a string asks Skia for the system theme,
+                // so without it a test that touches resources fails to initialise rather than
+                // failing an assertion.
                 sourceSets.named("jvmTest").configure {
                     dependencies {
+                        implementation(library("compose-mp-ui-test"))
                         implementation(ComposePlugin.DesktopDependencies.currentOs)
                     }
                 }

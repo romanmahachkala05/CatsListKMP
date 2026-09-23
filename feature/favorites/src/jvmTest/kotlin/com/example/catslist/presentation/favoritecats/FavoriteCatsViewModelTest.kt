@@ -4,7 +4,8 @@ import com.example.catslist.domain.model.AppError
 import com.example.catslist.domain.usecase.DownloadCatImageUseCase
 import com.example.catslist.domain.usecase.GetFavoriteCatsUseCase
 import com.example.catslist.domain.usecase.RemoveFavoriteUseCase
-import com.example.catslist.feature.favorites.R
+import com.example.catslist.feature.favorites.resources.Res
+import com.example.catslist.feature.favorites.resources.favoritecats_error_loading_favorites
 import com.example.catslist.presentation.DOWNLOAD_FAILED
 import com.example.catslist.presentation.DOWNLOAD_STARTED
 import com.example.catslist.presentation.FAVORITE_FAILED
@@ -54,7 +55,7 @@ class FavoriteCatsViewModelTest {
         val viewModel = viewModel()
 
         assertThat(viewModel.state.value.status).isEqualTo(
-            FavoriteCatsUiStatus.Error(UiText.AndroidResource(R.string.favoritecats_error_loading_favorites)),
+            FavoriteCatsUiStatus.Error(UiText.Resource(Res.string.favoritecats_error_loading_favorites)),
         )
     }
 

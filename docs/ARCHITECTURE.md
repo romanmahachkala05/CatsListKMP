@@ -54,11 +54,10 @@ Module graph (arrows = "depends on"):
     :core:designsystem  ──▶ :core:model, :core:ui          (multiplatform: common + android + jvm)
     :core:testing       ──▶ :core:model, :core:data, :core:ui  (multiplatform; test-only, nothing depends on it in `main`)
 
-`:core:model`, `:core:domain`, `:core:data`, `:core:ui`, `:core:testing` and
-`:core:designsystem` are Kotlin Multiplatform modules. The features and `:app` are still
-Android-only — the UI moves to Compose Multiplatform one module at a time, bottom-up (ADR-0037). See
-ADR-0028 for the migration order and ADR-0029 for what `:core:data`'s split looks
-like.
+Every `:core:*` module and `:feature:favorites` are Kotlin Multiplatform modules.
+`:feature:feed` and `:app` are still Android-only — the UI moves to Compose
+Multiplatform one module at a time, bottom-up (ADR-0037). See ADR-0028 for the
+migration order and ADR-0029 for what `:core:data`'s split looks like.
 
 Source sets in a multiplatform module are `commonMain` plus `androidMain`/`jvmMain`,
 and its tests are `commonTest`, `androidHostTest` (JVM, no device), `androidDeviceTest`

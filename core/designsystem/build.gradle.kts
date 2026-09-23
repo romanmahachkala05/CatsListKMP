@@ -28,7 +28,6 @@ kotlin {
         jvmTest.dependencies {
             implementation(project(":core:testing"))
             implementation(libs.truth)
-            implementation(libs.compose.mp.ui.test)
         }
 
         androidDeviceTest.dependencies {

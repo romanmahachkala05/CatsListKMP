@@ -11,7 +11,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.catslist.domain.model.Cat
-import com.example.catslist.feature.favorites.R
+import com.example.catslist.feature.favorites.resources.Res
+import com.example.catslist.feature.favorites.resources.favoritecats_empty_message
 import com.example.catslist.presentation.UiText
 import com.example.catslist.presentation.components.CatItem
 import com.example.catslist.presentation.components.CatListPlaceholder
@@ -19,7 +20,7 @@ import com.example.catslist.presentation.components.EmptyMessage
 import com.example.catslist.presentation.components.ErrorMessage
 import com.example.catslist.presentation.theme.CatsListTheme
 import kotlinx.collections.immutable.persistentListOf
-import org.koin.androidx.compose.koinViewModel
+import org.koin.compose.viewmodel.koinViewModel
 
 /** Snackbars are collected by the app's shared host (see MainActivity), not here. */
 @Composable
@@ -65,7 +66,7 @@ internal fun FavoriteCatsContent(
                     )
                 }
             }
-            FavoriteCatsUiStatus.Empty -> EmptyMessage(UiText.AndroidResource(R.string.favoritecats_empty_message))
+            FavoriteCatsUiStatus.Empty -> EmptyMessage(UiText.Resource(Res.string.favoritecats_empty_message))
             FavoriteCatsUiStatus.Loading -> CatListPlaceholder(contentPadding = contentPadding)
             is FavoriteCatsUiStatus.Error -> ErrorMessage(message = status.message, onRetry = {
                 onEvent(FavoriteCatsEvent.Retry)
