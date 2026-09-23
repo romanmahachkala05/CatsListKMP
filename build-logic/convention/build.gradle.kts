@@ -16,6 +16,7 @@ dependencies {
     compileOnly(libs.android.gradlePlugin)
     compileOnly(libs.kotlin.gradlePlugin)
     compileOnly(libs.compose.gradlePlugin)
+    compileOnly(libs.compose.multiplatform.gradlePlugin)
     compileOnly(libs.ktlint.gradlePlugin)
     compileOnly(libs.detekt.gradlePlugin)
 }
@@ -45,6 +46,10 @@ gradlePlugin {
         register("compose") {
             id = "catslist.compose"
             implementationClass = "ComposeConventionPlugin"
+        }
+        register("kmpCompose") {
+            id = "catslist.kmp.compose"
+            implementationClass = "KmpComposeConventionPlugin"
         }
         register("quality") {
             id = "catslist.quality"
