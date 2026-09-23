@@ -5,11 +5,10 @@ on:
   # economy and behaves as a hole: a stacked PR — one based on the branch below it
   # rather than on dev — matched nothing and ran no checks at all (ADR-0034).
   pull_request:
-  # main itself is verified too, so a bad merge is caught even when every PR into
-  # it was green on its own base. `main`, not the Android repo's `dev`: copied
-  # verbatim, this filter matched no branch here and main never ran CI.
+  # dev and main themselves are verified too, so a bad merge is caught even when
+  # every PR into them was green on its own base.
   push:
-    branches: [main]
+    branches: [dev, main]
 
 # A new push supersedes the run it interrupted; nothing is learned from finishing
 # the old one.
