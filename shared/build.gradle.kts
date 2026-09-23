@@ -36,5 +36,16 @@ kotlin {
             implementation(libs.junit)
             implementation(libs.truth)
         }
+
+        androidDeviceTest.dependencies {
+            implementation(project(":core:testing"))
+            implementation(libs.androidx.junit)
+            // Compose's test rule syncs through Espresso, and the version it pulls in
+            // transitively (3.5.0) reflects on an InputManager method this platform no longer has.
+            implementation(libs.androidx.espresso.core)
+            implementation(project.dependencies.platform(libs.androidx.compose.bom))
+            implementation(libs.androidx.compose.ui.test.junit4)
+            implementation(libs.androidx.compose.ui.test.manifest)
+        }
     }
 }

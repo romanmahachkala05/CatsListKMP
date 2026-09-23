@@ -25,6 +25,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.Saver
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
@@ -58,7 +60,9 @@ import org.jetbrains.compose.resources.stringResource
  */
 @Composable
 fun CatsNavDisplay(notifier: SnackbarNotifier, modifier: Modifier = Modifier) {
-    var selected by remember { mutableStateOf<NavKey>(CatsListNavKey) }
+    // Saveable, not just remembered: a rotation recreates the Activity, and a plain `remember`
+    // came back on the first tab whichever one was open.
+    var selected by rememberSaveable(stateSaver = TopLevelSaver) { mutableStateOf<NavKey>(CatsListNavKey) }
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(notifier) {
@@ -153,6 +157,15 @@ private fun FloatingBottomBar(
 }
 
 private val BAR_SHAPE = RoundedCornerShape(50)
+
+/** The bottom bar's destinations, in bar order. */
+private val TOP_LEVEL_KEYS = listOf(CatsListNavKey, FavoriteCatsNavKey)
+
+/** Saves the selected tab as its position in [TOP_LEVEL_KEYS] — an Int every platform can save. */
+private val TopLevelSaver = Saver<NavKey, Int>(
+    save = { TOP_LEVEL_KEYS.indexOf(it) },
+    restore = { TOP_LEVEL_KEYS[it] },
+)
 
 /**
  * Every [NavKey] the back stacks hold, registered for saving. On Android the back stack falls
