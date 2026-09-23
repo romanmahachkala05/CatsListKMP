@@ -16,7 +16,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -30,7 +29,10 @@ import androidx.paging.compose.itemKey
 import com.example.catslist.domain.model.AppError
 import com.example.catslist.domain.model.AppErrorException
 import com.example.catslist.domain.model.Cat
-import com.example.catslist.feature.feed.R
+import com.example.catslist.feature.feed.resources.Res
+import com.example.catslist.feature.feed.resources.catslist_action_retry
+import com.example.catslist.feature.feed.resources.catslist_empty_message
+import com.example.catslist.feature.feed.resources.catslist_error_favorites_unavailable
 import com.example.catslist.presentation.UiText
 import com.example.catslist.presentation.asAppError
 import com.example.catslist.presentation.components.CatItem
@@ -46,7 +48,8 @@ import com.example.catslist.presentation.theme.CatsListTheme
 import com.example.catslist.presentation.toUiText
 import kotlinx.collections.immutable.persistentSetOf
 import kotlinx.coroutines.flow.flowOf
-import org.koin.androidx.compose.koinViewModel
+import org.jetbrains.compose.resources.stringResource
+import org.koin.compose.viewmodel.koinViewModel
 
 /** Snackbars are collected by the app's shared host (see MainActivity), not here. */
 @Composable
@@ -113,7 +116,7 @@ private fun EmptyFeed(refresh: LoadState, onRetry: () -> Unit) {
         // being offline, being rate-limited and a 503 each read differently (ADR-0028).
         ErrorMessage(message = refresh.error.asAppError().toUiText(), onRetry = onRetry)
     } else {
-        EmptyMessage(UiText.AndroidResource(R.string.catslist_empty_message))
+        EmptyMessage(UiText.Resource(Res.string.catslist_empty_message))
     }
 }
 
@@ -180,7 +183,7 @@ private fun CatsFeed(
                             color = MaterialTheme.colorScheme.error,
                         )
                         Button(onClick = pagingItems::retry) {
-                            Text(text = stringResource(R.string.catslist_action_retry))
+                            Text(text = stringResource(Res.string.catslist_action_retry))
                         }
                     }
                 }
@@ -231,7 +234,7 @@ private fun CatsListFavoritesUnavailablePreview() {
             pagingItems = pagingItems,
             state = CatsListState(
                 favoritesStatus = CatsListFavoritesStatus.Unavailable(
-                    UiText.AndroidResource(R.string.catslist_error_favorites_unavailable),
+                    UiText.Resource(Res.string.catslist_error_favorites_unavailable),
                 ),
             ),
             onEvent = {},

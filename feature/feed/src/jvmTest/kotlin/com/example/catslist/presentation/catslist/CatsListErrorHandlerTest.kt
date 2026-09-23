@@ -1,7 +1,8 @@
 package com.example.catslist.presentation.catslist
 
 import com.example.catslist.domain.model.AppError
-import com.example.catslist.feature.feed.R
+import com.example.catslist.feature.feed.resources.Res
+import com.example.catslist.feature.feed.resources.catslist_error_favorites_unavailable
 import com.example.catslist.presentation.UiText
 import com.google.common.truth.Truth.assertThat
 import kotlinx.collections.immutable.persistentSetOf
@@ -17,7 +18,7 @@ class CatsListErrorHandlerTest {
         errorHandler.onFavoriteIdsFailure(AppError.Storage)
 
         assertThat(stateHolder.state.value.favoritesStatus).isEqualTo(
-            CatsListFavoritesStatus.Unavailable(UiText.AndroidResource(R.string.catslist_error_favorites_unavailable)),
+            CatsListFavoritesStatus.Unavailable(UiText.Resource(Res.string.catslist_error_favorites_unavailable)),
         )
     }
 

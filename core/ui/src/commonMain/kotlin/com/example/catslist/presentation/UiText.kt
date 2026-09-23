@@ -31,17 +31,6 @@ sealed interface UiText {
          */
         val args: ImmutableList<Any> = persistentListOf(),
     ) : UiText
-
-    /**
-     * An Android `R.string` id, for the modules that are still Android-only. Compose resources
-     * need the multiplatform plugin, so until `:feature:favorites` and `:feature:feed` move to
-     * `commonMain` their own strings can only be `R` ids. Transitional: it goes when they do,
-     * and nothing multiplatform may create one — on desktop it has nothing to resolve against.
-     */
-    data class AndroidResource(
-        val id: Int,
-        val args: ImmutableList<Any> = persistentListOf(),
-    ) : UiText
 }
 
 @Suppress("SpreadOperator") // How `stringResource` takes format arguments; 0-2 of them here.
@@ -49,20 +38,14 @@ sealed interface UiText {
 fun UiText.resolve(): String = when (this) {
     is UiText.Raw -> value
     is UiText.Resource -> stringResource(id, *args.toTypedArray())
-    is UiText.AndroidResource -> androidStringResource(id, args)
 }
-
-@Composable
-internal expect fun androidStringResource(id: Int, args: ImmutableList<Any>): String
 
 /**
  * For resolving outside composition, such as inside a `LaunchedEffect`. Suspends because
- * Compose resources are read from files rather than from an Android `Context`. An
- * [UiText.AndroidResource] needs that `Context`, so on Android use the `load(context)` overload.
+ * Compose resources are read from files rather than from an Android `Context`.
  */
 @Suppress("SpreadOperator")
 suspend fun UiText.load(): String = when (this) {
     is UiText.Raw -> value
     is UiText.Resource -> getString(id, *args.toTypedArray())
-    is UiText.AndroidResource -> error("An Android string id needs a Context: call load(context)")
 }

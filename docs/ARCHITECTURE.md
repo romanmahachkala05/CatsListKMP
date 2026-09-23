@@ -54,10 +54,10 @@ Module graph (arrows = "depends on"):
     :core:designsystem  ──▶ :core:model, :core:ui          (multiplatform: common + android + jvm)
     :core:testing       ──▶ :core:model, :core:data, :core:ui  (multiplatform; test-only, nothing depends on it in `main`)
 
-Every `:core:*` module and `:feature:favorites` are Kotlin Multiplatform modules.
-`:feature:feed` and `:app` are still Android-only — the UI moves to Compose
-Multiplatform one module at a time, bottom-up (ADR-0037). See ADR-0028 for the
-migration order and ADR-0029 for what `:core:data`'s split looks like.
+Every `:core:*` and `:feature:*` module is Kotlin Multiplatform; only `:app` is
+still Android-only. The UI moved to Compose Multiplatform one module at a time,
+bottom-up (ADR-0037). See ADR-0028 for the migration order and ADR-0029 for what
+`:core:data`'s split looks like.
 
 Source sets in a multiplatform module are `commonMain` plus `androidMain`/`jvmMain`,
 and its tests are `commonTest`, `androidHostTest` (JVM, no device), `androidDeviceTest`
@@ -432,8 +432,7 @@ load; `PagingData` is exposed alongside `state` rather than inside it, because
       suspend fun UiText.load(): String = when (this) { … }  // outside composition
 
   Strings are Compose resources (`src/commonMain/composeResources/values/strings.xml`),
-  read through each module's generated `Res` (ADR-0037). Android-only modules still
-  pass `R.string` ids as the transitional `UiText.AndroidResource` until they move.
+  read through each module's generated `Res` (ADR-0037).
 
 - ViewModels / StateHolders / mappers **never** call `context.getString` — they
   put a `UiText` in state.

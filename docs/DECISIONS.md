@@ -1817,12 +1817,14 @@ something outside the module has to name a resource.
 non-composable `resolve(context)` becomes `suspend fun load()`: Compose resources
 are read from files, not from a `Context`, and reading a file suspends.
 
-**One transitional case.** Compose resources need the multiplatform plugin —
-tried and confirmed: in a `com.android.library` module the plugin generates no
-resource tasks. So while the features are still Android-only, their own strings
-can only be `R` ids, and `UiText` carries them as `UiText.AndroidResource`. It
-resolves on Android and throws on desktop, where nothing can create one. It goes
-when `:feature:feed`, the last module to move, does.
+**One transitional case, now gone.** Compose resources need the multiplatform
+plugin — tried and confirmed: in a `com.android.library` module the plugin
+generates no resource tasks. So while the features were still Android-only,
+their own strings could only be `R` ids, and `UiText` carried them as
+`UiText.AndroidResource`. It
+resolved on Android and threw on desktop, where nothing could create one. It went
+when `:feature:feed`, the last module to move, did — along with the
+`load(context)` overload that existed only to resolve it outside composition.
 
 **Consequences.** Desktop tests of anything that reads a resource need Skia's
 native library for the host OS — reading a string asks it for the system theme —
