@@ -1831,6 +1831,20 @@ including one that reads the real strings: Android's `strings.xml` escapes
 apostrophes and Compose resources does not, so a file copied verbatim would show
 backslashes, and only reading the text catches that.
 
+Vector drawables carry over as Android vector XML, which Compose resources
+parses on every platform — including Android, where it replaces the framework's
+own parser. It does not know Android's theme references: the icons'
+`@android:color/white` fill crashed the first desktop test to draw one, and is
+now a literal `#FFFFFFFF` (the icons are tinted where they are used, so the value
+never showed). The Android-only parts that remain — dynamic colour and the status
+bar's icon tint in `CatsListTheme` — are an `expect`/`actual` pair that does
+nothing on desktop.
+
+UI tests are split by what they need. Anything about the device — the card
+sitting clear of the status bar, edge-to-edge — stays an instrumented test. The
+components themselves get desktop tests (`runComposeUiTest` in `jvmTest`),
+which `./gradlew verify` runs with no device.
+
 On Android, CMP's artifacts resolve to the androidx Compose ones, so the Compose
 BOM still decides what the app ships; nothing on the Android side changes
 version.
