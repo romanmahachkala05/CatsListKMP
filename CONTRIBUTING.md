@@ -105,6 +105,7 @@ for the full dependency graph and the rules behind it.
 | Compose UI tests for a component (gestures, phases, image states) | `:core:designsystem` | `src/androidTest/kotlin/` |
 | `CatsApp()`, `NavDisplay` + back stacks, the Koin module list | `:shared` | `src/commonMain/kotlin/…/`, `…/presentation/navigation/` |
 | `App`, `MainActivity` — the Android entry point only | `:app` | `src/main/java/…/` |
+| `main()` — the desktop entry point only | `:desktopApp` | `src/jvmMain/kotlin/…/` |
 | Convention plugins (`catslist.android.library`, `.kmp.library`, `.jvm.library`, `.compose`, `.koin`, `.quality`) | `build-logic` | `build-logic/convention/src/main/kotlin/` |
 | Every dependency and version | — | `gradle/libs.versions.toml` |
 | `verify` / `verifyOnDevice` | — | root `build.gradle.kts` |
