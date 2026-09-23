@@ -7,8 +7,8 @@ import org.jetbrains.compose.resources.ResourcesExtension
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 
 /**
- * Additive: applied alongside `catslist.kmp.android.library` by modules that render Compose
- * UI from `commonMain`. The multiplatform counterpart of `catslist.compose`, which stays for
+ * Additive: applied alongside `catslist.kmp.android.library` (or, for the desktop app,
+ * `catslist.kmp.library`) by modules that render Compose UI. The multiplatform counterpart of `catslist.compose`, which stays for
  * the Android-only modules until each one moves.
  *
  * Strings and drawables live in `src/commonMain/composeResources/` and are read through a

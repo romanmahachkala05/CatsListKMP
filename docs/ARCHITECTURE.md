@@ -43,7 +43,7 @@ none of the ceremony. Split when a real trigger shows up — see ADR-0001's
 
 Module graph (arrows = "depends on"):
 
-    :app  ──▶ :shared
+    :app, :desktopApp  ──▶ :shared                           (:desktopApp: jvm only)
     :shared  ──▶ :feature:feed, :feature:favorites          (multiplatform: common + android + jvm)
       │          └──▶ :core:domain, :core:ui, :core:designsystem
       └──▶ :core:data, :core:ui, :core:designsystem
@@ -83,7 +83,7 @@ Rules:
 - `:shared` is the **root UI**: `CatsApp()`, `CatsNavDisplay` and its back
   stacks, and `appModules`, the Koin module list. `:app` is the Android entry
   point only: `Application` (starts Koin, builds Coil's loader) and
-  `MainActivity`. Neither holds screens, ViewModels, use cases or
+  `MainActivity`; `:desktopApp` is the same for desktop, in one `main()`. Neither holds screens, ViewModels, use cases or
   feature-specific DI modules.
 - `:core:domain` owns the use cases, `CatRepository` and `ImageDownloader` —
   the ports, with no implementation and no platform. `:core:data` implements them.

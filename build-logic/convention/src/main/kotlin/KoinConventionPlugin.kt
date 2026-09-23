@@ -39,7 +39,8 @@ class KoinConventionPlugin : Plugin<Project> {
                         implementation(core)
                     }
                 }
-                kmp.sourceSets.named("androidMain").configure {
+                // Only where there is an Android target: the desktop app has none.
+                kmp.sourceSets.matching { it.name == "androidMain" }.configureEach {
                     dependencies { implementation(android) }
                 }
                 kmp.sourceSets.named("commonTest").configure {

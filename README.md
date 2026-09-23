@@ -20,15 +20,17 @@ pull request at a time, with the build green at every commit.
 
 ## Architecture
 
-Nine Gradle modules, Clean Architecture, one direction of dependency:
+Eleven Gradle modules, Clean Architecture, one direction of dependency:
 
 ```
-:app  ──►  :feature:feed, :feature:favorites  ──►  :core:model, :core:domain,
-                                     :core:data, :core:ui, :core:designsystem
+:app, :desktopApp  ──►  :shared  ──►  :feature:feed, :feature:favorites  ──►
+                  :core:model, :core:domain, :core:data, :core:ui, :core:designsystem
 ```
 
-`:core:model`, `:core:domain` and `:core:data` are Kotlin Multiplatform modules,
-building for Android and for the JVM (desktop). The first two know nothing about
+Everything below the two entry points is Kotlin Multiplatform, building for
+Android and for the JVM (desktop) — the screens included, in Compose
+Multiplatform. `:app` and `:desktopApp` are an Activity and a window around the
+same `CatsApp()`. `:core:model` and `:core:domain` know nothing about
 Android at all; `:core:data` implements the repository a use case declares and
 splits on three seams — the database path, the HTTP engine, and image download.
 It is also the only layer that knows what a `SocketTimeoutException` or an HTTP
@@ -63,7 +65,7 @@ different reason than ADR-0001 predicted).
 | DI | Koin |
 | Async | Coroutines, Flow |
 | Network | Ktor, OkHttp engine — one client, shared with Coil |
-| Multiplatform | Android + JVM (desktop); iOS not yet |
+| Multiplatform | Kotlin Multiplatform + Compose Multiplatform: Android and desktop; iOS not yet |
 | Storage | Room, with real migrations and committed schemas — favorites only |
 | Pagination | Paging 3, paging the feed straight from the network |
 | Build | Gradle KTS, version catalog, KSP, JDK 17 |
@@ -133,7 +135,8 @@ recorded because finding them was the work.
 ```bash
 git clone https://github.com/romanmahachkala05/CatsListApplication.git
 cd CatsListApplication
-./gradlew installDebug
+./gradlew installDebug        # Android
+./gradlew :desktopApp:run     # desktop
 ```
 
 JDK 17. No API key required — TheCatAPI's search endpoint is open.
