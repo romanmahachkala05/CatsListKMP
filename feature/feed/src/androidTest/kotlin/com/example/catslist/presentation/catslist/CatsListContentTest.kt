@@ -21,7 +21,6 @@ import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.example.catslist.core.designsystem.R as designsystemR
-import com.example.catslist.core.ui.R as uiR
 import com.example.catslist.domain.model.AppError
 import com.example.catslist.domain.model.AppErrorException
 import com.example.catslist.domain.model.Cat
@@ -29,11 +28,14 @@ import com.example.catslist.feature.feed.R
 import com.example.catslist.presentation.UiText
 import com.example.catslist.presentation.components.CAT_CARD_TAG
 import com.example.catslist.presentation.components.CAT_LIST_PLACEHOLDER_TAG
+import com.example.catslist.presentation.load
 import com.example.catslist.presentation.theme.CatsListTheme
+import com.example.catslist.presentation.toUiText
 import com.example.catslist.testing.cat
 import com.google.common.truth.Truth.assertThat
 import kotlinx.collections.immutable.persistentSetOf
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.runBlocking
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -102,7 +104,7 @@ class CatsListContentTest {
             states = settled(refresh = LoadState.Error(AppErrorException(AppError.NoConnection))),
         )
 
-        composeRule.onNodeWithText(string(uiR.string.common_error_no_connection)).assertIsDisplayed()
+        composeRule.onNodeWithText(errorText(AppError.NoConnection)).assertIsDisplayed()
         composeRule.onNodeWithText(string(designsystemR.string.common_action_retry)).assertIsDisplayed()
     }
 
@@ -114,8 +116,8 @@ class CatsListContentTest {
             states = settled(refresh = LoadState.Error(AppErrorException(AppError.RateLimited))),
         )
 
-        composeRule.onNodeWithText(string(uiR.string.common_error_rate_limited)).assertIsDisplayed()
-        composeRule.onNodeWithText(string(uiR.string.common_error_no_connection)).assertDoesNotExist()
+        composeRule.onNodeWithText(errorText(AppError.RateLimited)).assertIsDisplayed()
+        composeRule.onNodeWithText(errorText(AppError.NoConnection)).assertDoesNotExist()
     }
 
     /** The paged cat carries no favorite status; the screen overlays it (ADR-0024). */
@@ -142,7 +144,7 @@ class CatsListContentTest {
             states = settled(),
             state = CatsListState(
                 favoritesStatus = CatsListFavoritesStatus.Unavailable(
-                    UiText.Resource(R.string.catslist_error_favorites_unavailable),
+                    UiText.AndroidResource(R.string.catslist_error_favorites_unavailable),
                 ),
             ),
         )
@@ -168,7 +170,7 @@ class CatsListContentTest {
             states = settled(append = LoadState.Error(AppErrorException(AppError.Timeout))),
         )
 
-        composeRule.onNodeWithText(string(uiR.string.common_error_timeout)).assertIsDisplayed()
+        composeRule.onNodeWithText(errorText(AppError.Timeout)).assertIsDisplayed()
         composeRule.onNodeWithText(string(R.string.catslist_action_retry)).assertIsDisplayed()
     }
 
@@ -224,6 +226,9 @@ class CatsListContentTest {
     )
 
     private fun string(id: Int) = context.getString(id)
+
+    /** `:core:ui`'s strings are Compose resources, read the way the app reads them. */
+    private fun errorText(error: AppError) = runBlocking { error.toUiText().load() }
 
     private companion object {
         const val SETTLE_MILLIS = 1_000L

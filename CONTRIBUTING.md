@@ -93,7 +93,7 @@ for the full dependency graph and the rules behind it.
 | Repository impl, API service, Room entity/DAO/migrations, DI modules | `:core:data` | `src/commonMain/kotlin/…/data/` |
 | Platform splits (database path, HTTP engine, image download) | `:core:data` | `src/androidMain/`, `src/jvmMain/` |
 | Committed Room schemas | `:core:data` | `schemas/` |
-| ViewModel-facing shared primitives: `UiText`, `launchCatching`, `RetryableFlow`, `StateOwner`, `SnackbarNotifier` | `:core:ui` | `src/main/kotlin/…/presentation/` |
+| ViewModel-facing shared primitives: `UiText`, `launchCatching`, `RetryableFlow`, `StateOwner`, `SnackbarNotifier` | `:core:ui` | `src/commonMain/kotlin/…/presentation/`, strings in `src/commonMain/composeResources/` |
 | Theme, shared components (e.g. the cat image card) | `:core:designsystem` | `src/main/kotlin/…/presentation/theme/`, `…/components/` |
 | `MainDispatcherRule` and shared test fakes | `:core:testing` | `src/main/kotlin/…/testing/` |
 | One MVI screen (State/Event/StateHolder/VM/Screen/ErrorHandler) | `:feature:favorites` | `src/main/kotlin/…/presentation/<name>/` |

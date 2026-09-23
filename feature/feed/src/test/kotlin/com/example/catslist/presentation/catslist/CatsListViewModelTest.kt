@@ -78,7 +78,7 @@ class CatsListViewModelTest {
         val viewModel = viewModel()
 
         assertThat(viewModel.state.value.favoritesStatus).isEqualTo(
-            CatsListFavoritesStatus.Unavailable(UiText.Resource(R.string.catslist_error_favorites_unavailable)),
+            CatsListFavoritesStatus.Unavailable(UiText.AndroidResource(R.string.catslist_error_favorites_unavailable)),
         )
         assertThat(viewModel.pagedCats.asSnapshot().map { it.id }).containsExactly("1")
     }

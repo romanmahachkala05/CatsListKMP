@@ -113,7 +113,7 @@ private fun EmptyFeed(refresh: LoadState, onRetry: () -> Unit) {
         // being offline, being rate-limited and a 503 each read differently (ADR-0028).
         ErrorMessage(message = refresh.error.asAppError().toUiText(), onRetry = onRetry)
     } else {
-        EmptyMessage(UiText.Resource(R.string.catslist_empty_message))
+        EmptyMessage(UiText.AndroidResource(R.string.catslist_empty_message))
     }
 }
 
@@ -231,7 +231,7 @@ private fun CatsListFavoritesUnavailablePreview() {
             pagingItems = pagingItems,
             state = CatsListState(
                 favoritesStatus = CatsListFavoritesStatus.Unavailable(
-                    UiText.Resource(R.string.catslist_error_favorites_unavailable),
+                    UiText.AndroidResource(R.string.catslist_error_favorites_unavailable),
                 ),
             ),
             onEvent = {},

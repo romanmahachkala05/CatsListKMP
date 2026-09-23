@@ -21,7 +21,7 @@ internal class FavoriteCatsErrorHandler(
      */
     override fun onFavoritesFailure(error: AppError) {
         val message = when (error) {
-            AppError.Storage -> UiText.Resource(R.string.favoritecats_error_loading_favorites)
+            AppError.Storage -> UiText.AndroidResource(R.string.favoritecats_error_loading_favorites)
             else -> error.toUiText()
         }
         stateHolder.showError(message)

@@ -1,13 +1,12 @@
 package com.example.catslist.presentation
 
-import android.os.SystemClock
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import kotlin.time.TimeSource
 import kotlinx.coroutines.delay
 
 /**
@@ -18,14 +17,14 @@ import kotlinx.coroutines.delay
 @Composable
 fun heldAtLeast(value: Boolean, minimumMillis: Long): Boolean {
     var held by remember { mutableStateOf(value) }
-    var shownAtMillis by remember { mutableLongStateOf(0L) }
+    // Monotonic on purpose: an NTP sync can step the wall clock backwards.
+    var shownAt by remember { mutableStateOf(TimeSource.Monotonic.markNow()) }
     LaunchedEffect(value) {
         if (value) {
-            // Monotonic on purpose: an NTP sync can step the wall clock backwards.
-            shownAtMillis = SystemClock.elapsedRealtime()
+            shownAt = TimeSource.Monotonic.markNow()
             held = true
         } else {
-            val remaining = minimumMillis - (SystemClock.elapsedRealtime() - shownAtMillis)
+            val remaining = minimumMillis - shownAt.elapsedNow().inWholeMilliseconds
             if (remaining > 0) delay(remaining)
             held = false
         }

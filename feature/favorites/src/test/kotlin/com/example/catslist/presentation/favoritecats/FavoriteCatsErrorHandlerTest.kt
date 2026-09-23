@@ -16,7 +16,7 @@ class FavoriteCatsErrorHandlerTest {
         errorHandler.onFavoritesFailure(AppError.Storage)
 
         assertThat(stateHolder.state.value.status).isEqualTo(
-            FavoriteCatsUiStatus.Error(UiText.Resource(R.string.favoritecats_error_loading_favorites)),
+            FavoriteCatsUiStatus.Error(UiText.AndroidResource(R.string.favoritecats_error_loading_favorites)),
         )
     }
 }

@@ -65,7 +65,7 @@ internal fun FavoriteCatsContent(
                     )
                 }
             }
-            FavoriteCatsUiStatus.Empty -> EmptyMessage(UiText.Resource(R.string.favoritecats_empty_message))
+            FavoriteCatsUiStatus.Empty -> EmptyMessage(UiText.AndroidResource(R.string.favoritecats_empty_message))
             FavoriteCatsUiStatus.Loading -> CatListPlaceholder(contentPadding = contentPadding)
             is FavoriteCatsUiStatus.Error -> ErrorMessage(message = status.message, onRetry = {
                 onEvent(FavoriteCatsEvent.Retry)
