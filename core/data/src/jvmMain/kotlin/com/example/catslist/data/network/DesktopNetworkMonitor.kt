@@ -47,12 +47,11 @@ class DesktopNetworkMonitor(
     }
 }
 
-private fun hasRoutableInterface(): Boolean =
-    NetworkInterface.getNetworkInterfaces().asSequence().any { network ->
-        network.isUp &&
-            !network.isLoopback &&
-            network.inetAddresses.asSequence().any { !it.isLoopbackAddress && !it.isLinkLocalAddress }
-    }
+private fun hasRoutableInterface(): Boolean = NetworkInterface.getNetworkInterfaces().asSequence().any { network ->
+    network.isUp &&
+        !network.isLoopback &&
+        network.inetAddresses.asSequence().any { !it.isLoopbackAddress && !it.isLinkLocalAddress }
+}
 
 private fun canOpenProbeConnection(): Boolean = runCatching {
     Socket().use { it.connect(InetSocketAddress(PROBE_HOST, PROBE_PORT), PROBE_TIMEOUT_MILLIS) }

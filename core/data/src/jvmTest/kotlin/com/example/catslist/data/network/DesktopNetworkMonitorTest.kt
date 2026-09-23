@@ -59,7 +59,10 @@ class DesktopNetworkMonitorTest {
     private fun TestScope.monitor() = DesktopNetworkMonitor(
         ioDispatcher = StandardTestDispatcher(testScheduler),
         hasNetwork = { network },
-        canReachInternet = { probes++; internet },
+        canReachInternet = {
+            probes++
+            internet
+        },
         pollInterval = POLL,
     )
 
