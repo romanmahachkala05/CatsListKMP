@@ -94,7 +94,7 @@ for the full dependency graph and the rules behind it.
 | Platform splits (database path, HTTP engine, image download) | `:core:data` | `src/androidMain/`, `src/jvmMain/` |
 | Committed Room schemas | `:core:data` | `schemas/` |
 | ViewModel-facing shared primitives: `UiText`, `launchCatching`, `RetryableFlow`, `StateOwner`, `SnackbarNotifier` | `:core:ui` | `src/commonMain/kotlin/…/presentation/`, strings in `src/commonMain/composeResources/` |
-| Theme, shared components (e.g. the cat image card) | `:core:designsystem` | `src/main/kotlin/…/presentation/theme/`, `…/components/` |
+| Theme, shared components (e.g. the cat image card) | `:core:designsystem` | `src/commonMain/kotlin/…/presentation/theme/`, `…/components/`; icons and strings in `src/commonMain/composeResources/` |
 | `MainDispatcherRule` (JUnit, so JVM + Android only) and shared test fakes | `:core:testing` | fakes in `src/commonMain/kotlin/…/testing/`, the rule in `src/jvmAndAndroidMain/…` |
 | One MVI screen (State/Event/StateHolder/VM/Screen/ErrorHandler) | `:feature:favorites` | `src/main/kotlin/…/presentation/<name>/` |
 | One paged screen (Event/VM/Screen; Paging 3 owns load/error/retry state — [ADR-0024](docs/DECISIONS.md#adr-0024)) | `:feature:feed` | `src/main/kotlin/…/presentation/<name>/` |

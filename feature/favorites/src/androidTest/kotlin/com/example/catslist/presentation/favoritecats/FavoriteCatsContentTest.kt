@@ -17,7 +17,10 @@ import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import com.example.catslist.core.designsystem.R as designsystemR
+import com.example.catslist.core.designsystem.resources.Res
+import com.example.catslist.core.designsystem.resources.common_action_retry
+import com.example.catslist.core.designsystem.resources.common_cd_download_cat
+import com.example.catslist.core.designsystem.resources.common_cd_favorite_cat
 import com.example.catslist.feature.favorites.R
 import com.example.catslist.presentation.UiText
 import com.example.catslist.presentation.components.CAT_CARD_TAG
@@ -26,6 +29,9 @@ import com.example.catslist.presentation.theme.CatsListTheme
 import com.example.catslist.testing.cat
 import com.google.common.truth.Truth.assertThat
 import kotlinx.collections.immutable.persistentListOf
+import kotlinx.coroutines.runBlocking
+import org.jetbrains.compose.resources.StringResource
+import org.jetbrains.compose.resources.getString
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -66,7 +72,7 @@ class FavoriteCatsContentTest {
     fun contentPutsACardUpForEveryFavorite() {
         showContent(FavoriteCatsState(status = FavoriteCatsUiStatus.Content, cats = twoCats))
 
-        composeRule.onAllNodesWithContentDescription(string(designsystemR.string.common_cd_favorite_cat))
+        composeRule.onAllNodesWithContentDescription(designString(Res.string.common_cd_favorite_cat))
             .assertCountEquals(2)
         composeRule.onNodeWithTag(CAT_LIST_PLACEHOLDER_TAG).assertDoesNotExist()
     }
@@ -105,7 +111,7 @@ class FavoriteCatsContentTest {
         )
 
         composeRule.onNodeWithText(string(R.string.favoritecats_error_loading_favorites)).assertIsDisplayed()
-        composeRule.onNodeWithText(string(designsystemR.string.common_action_retry)).performClick()
+        composeRule.onNodeWithText(designString(Res.string.common_action_retry)).performClick()
 
         assertThat(events).containsExactly(FavoriteCatsEvent.Retry)
     }
@@ -119,7 +125,7 @@ class FavoriteCatsContentTest {
             onEvent = { events += it },
         )
 
-        composeRule.onAllNodesWithContentDescription(string(designsystemR.string.common_cd_favorite_cat))[1]
+        composeRule.onAllNodesWithContentDescription(designString(Res.string.common_cd_favorite_cat))[1]
             .performClick()
 
         assertThat(events).containsExactly(FavoriteCatsEvent.RemoveFavorite(cat("2", isFavorite = true)))
@@ -133,7 +139,7 @@ class FavoriteCatsContentTest {
             onEvent = { events += it },
         )
 
-        composeRule.onAllNodesWithContentDescription(string(designsystemR.string.common_cd_download_cat))[0]
+        composeRule.onAllNodesWithContentDescription(designString(Res.string.common_cd_download_cat))[0]
             .performClick()
 
         assertThat(events).containsExactly(FavoriteCatsEvent.Download(cat("1", isFavorite = true)))
@@ -170,6 +176,9 @@ class FavoriteCatsContentTest {
     }
 
     private fun string(id: Int) = context.getString(id)
+
+    /** `:core:designsystem`'s strings are Compose resources, read the way the app reads them. */
+    private fun designString(resource: StringResource) = runBlocking { getString(resource) }
 
     private companion object {
         val twoCats = persistentListOf(cat("1", isFavorite = true), cat("2", isFavorite = true))

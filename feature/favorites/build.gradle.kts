@@ -32,6 +32,8 @@ dependencies {
     testImplementation(libs.truth)
 
     androidTestImplementation(project(":core:testing"))
+    // To read :core:designsystem's strings, which are Compose resources now (ADR-0037).
+    androidTestImplementation(libs.compose.mp.resources)
     androidTestImplementation(libs.androidx.junit)
     // The host activity, so a test can run the composable edge-to-edge as the app does.
     androidTestImplementation(libs.androidx.activity.compose)
