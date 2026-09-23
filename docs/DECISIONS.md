@@ -47,7 +47,7 @@ that fail without the fix. They are here because finding them was the work.
 | [0018](#adr-0018) | Two-tier verification | Accepted, **amended** by 0034, 0035 |
 | [0019](#adr-0019) | Make the feed resubscribable instead | Accepted |
 | [0020](#adr-0020) | One serialization library | Accepted |
-| [0021](#adr-0021) | Derive versionCode from the version name | Accepted |
+| [0021](#adr-0021) | Derive versionCode from the version name | Accepted, **amended** by 0037 |
 | [0022](#adr-0022) | Split the app into Gradle modules | Accepted |
 | [0023](#adr-0023) | Paging 3 for the feed, with a `RemoteMediator` | **Superseded** by 0025 |
 | [0024](#adr-0024) | Paging owns the feed's *load* state, not its whole state | Accepted |
@@ -1874,6 +1874,16 @@ Koin's Compose integration remembers the global Koin it first sees, so a UI test
 that starts and stops Koin per test gets the previous test's closed scope. The
 desktop tests hand the composition a Koin of their own (`KoinIsolatedContext`)
 instead.
+
+**Two apps, one version.** With a desktop app beside the Android one, the
+version moved from `app/build.gradle.kts` into `gradle.properties`
+(`catslist.version`): Android still derives `versionCode` from it (ADR-0021,
+otherwise unchanged) and the desktop installers use it as it stands. The
+installers are built by `.github/workflows/release.yml`, one runner per OS
+because jpackage cannot cross-package, on every version tag and on any pull
+request that touches `:desktopApp` — packaging fails in ways `verify` never
+exercises, and the packaged app runs on a trimmed Java runtime whose missing
+module only shows when the code needing it first runs.
 
 **Review when:** AGP's Kotlin Multiplatform library plugin and Compose resources
 stop agreeing — they are two separately versioned plugins meeting at the Android
