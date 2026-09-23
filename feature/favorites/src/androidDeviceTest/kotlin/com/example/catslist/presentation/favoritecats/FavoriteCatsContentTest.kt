@@ -177,6 +177,9 @@ class FavoriteCatsContentTest {
     /** Strings are Compose resources (ADR-0037), read the way the app reads them. */
     private fun string(resource: StringResource) = runBlocking { getString(resource) }
 
+    /** `:core:designsystem`'s strings are Compose resources, read the way the app reads them. */
+    private fun designString(resource: StringResource) = runBlocking { getString(resource) }
+
     private companion object {
         val twoCats = persistentListOf(cat("1", isFavorite = true), cat("2", isFavorite = true))
         val errorMessage = UiText.Resource(Res.string.favoritecats_error_loading_favorites)
