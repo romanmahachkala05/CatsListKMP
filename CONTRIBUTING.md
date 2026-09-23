@@ -52,6 +52,18 @@ suite nobody runs is no suite at all.
 Start an emulator first (`emulator -avd <name>`, or from Android Studio);
 `connectedDebugAndroidTest` fails with no device attached.
 
+**Keep the device awake.** A screen that goes to sleep mid-run takes every
+Compose UI test in the module with it, all failing with:
+
+    java.lang.IllegalStateException: No compose hierarchies found in the app.
+    Possible reasons include: (1) the Activity that calls setContent did not launch...
+
+That reads like a broken test setup, but a whole module's UI tests dying at once
+is almost always a sleeping screen. Wake it and pin it before rerunning:
+
+    adb shell input keyevent KEYCODE_WAKEUP
+    adb shell svc power stayon true
+
 Also useful:
 
 | Command | Use |
@@ -71,13 +83,15 @@ if the machine has none) whatever `JAVA_HOME` happens to be. Regenerate that fil
 
 ## Where things live
 
-Eight Gradle modules — see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) §2b
+Nine Gradle modules — see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) §2b
 for the full dependency graph and the rules behind it.
 
 | Thing | Module | Location |
 | --- | --- | --- |
-| Domain model | `:core:model` | `src/main/kotlin/…/domain/model/` |
-| Repository interface + impl, use cases, API service, Room entity/DAO/migrations, DI modules | `:core:data` | `src/main/kotlin/…/domain/`, `…/data/` |
+| Domain model | `:core:model` | `src/commonMain/kotlin/…/domain/model/` |
+| Use cases, `CatRepository`, `ImageDownloader` | `:core:domain` | `src/commonMain/kotlin/…/domain/` |
+| Repository impl, API service, Room entity/DAO/migrations, DI modules | `:core:data` | `src/commonMain/kotlin/…/data/` |
+| Platform splits (database path, HTTP engine, image download) | `:core:data` | `src/androidMain/`, `src/jvmMain/` |
 | Committed Room schemas | `:core:data` | `schemas/` |
 | ViewModel-facing shared primitives: `UiText`, `launchCatching`, `RetryableFlow`, `StateOwner`, `SnackbarNotifier` | `:core:ui` | `src/main/kotlin/…/presentation/` |
 | Theme, shared components (e.g. the cat image card) | `:core:designsystem` | `src/main/kotlin/…/presentation/theme/`, `…/components/` |
@@ -85,11 +99,12 @@ for the full dependency graph and the rules behind it.
 | One MVI screen (State/Event/StateHolder/VM/Screen/ErrorHandler) | `:feature:favorites` | `src/main/kotlin/…/presentation/<name>/` |
 | One paged screen (Event/VM/Screen; Paging 3 owns load/error/retry state — [ADR-0024](docs/DECISIONS.md#adr-0024)) | `:feature:feed` | `src/main/kotlin/…/presentation/<name>/` |
 | Unit tests | same module as the code they test | `src/test/kotlin/` |
-| Device tests (Room behavior, migrations, upgrades) | `:core:data` | `src/androidTest/kotlin/` |
+| Device tests (Room behavior, migrations, upgrades) | `:core:data` | `src/androidDeviceTest/kotlin/` |
+| Desktop tests (the real database on the JVM) | `:core:data` | `src/jvmTest/kotlin/` |
 | Compose UI tests (which branch a screen shows) | the screen's own module | `src/androidTest/kotlin/` |
 | Compose UI tests for a component (gestures, phases, image states) | `:core:designsystem` | `src/androidTest/kotlin/` |
 | `App`, `MainActivity`, `NavDisplay` + back stack — composition root only | `:app` | `src/main/java/…/`, `…/presentation/navigation/` |
-| Convention plugins (`catslist.android.library`, `.jvm.library`, `.compose`, `.koin`, `.quality`) | `build-logic` | `build-logic/convention/src/main/kotlin/` |
+| Convention plugins (`catslist.android.library`, `.kmp.library`, `.jvm.library`, `.compose`, `.koin`, `.quality`) | `build-logic` | `build-logic/convention/src/main/kotlin/` |
 | Every dependency and version | — | `gradle/libs.versions.toml` |
 | `verify` / `verifyOnDevice` | — | root `build.gradle.kts` |
 

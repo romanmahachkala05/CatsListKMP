@@ -1,13 +1,16 @@
 package com.example.catslist.presentation.catslist
 
 import androidx.paging.testing.asSnapshot
+import com.example.catslist.domain.model.AppError
 import com.example.catslist.domain.usecase.DownloadCatImageUseCase
 import com.example.catslist.domain.usecase.GetCatFeedUseCase
 import com.example.catslist.domain.usecase.GetFavoriteCatsUseCase
 import com.example.catslist.domain.usecase.ToggleFavoriteUseCase
+import com.example.catslist.feature.feed.R
 import com.example.catslist.presentation.DOWNLOAD_FAILED
 import com.example.catslist.presentation.DOWNLOAD_STARTED
 import com.example.catslist.presentation.FAVORITE_FAILED
+import com.example.catslist.presentation.UiText
 import com.example.catslist.testing.FakeCatRepository
 import com.example.catslist.testing.FakeImageDownloader
 import com.example.catslist.testing.FakeSnackbarNotifier
@@ -70,11 +73,13 @@ class CatsListViewModelTest {
     fun `a broken favorites stream marks favorites unavailable and leaves the feed alone`() = runTest {
         // Without the guard the throw escapes viewModelScope and kills the process.
         repository.setFeed(cat("1"))
-        repository.favoritesError = IOException("database is corrupt")
+        repository.favoritesError = AppError.Storage
 
         val viewModel = viewModel()
 
-        assertThat(viewModel.state.value.favoritesStatus).isEqualTo(CatsListFavoritesStatus.Unavailable)
+        assertThat(viewModel.state.value.favoritesStatus).isEqualTo(
+            CatsListFavoritesStatus.Unavailable(UiText.Resource(R.string.catslist_error_favorites_unavailable)),
+        )
         assertThat(viewModel.pagedCats.asSnapshot().map { it.id }).containsExactly("1")
     }
 
@@ -82,7 +87,7 @@ class CatsListViewModelTest {
     fun `a failed favorite toggle is reported instead of crashing the screen`() = runTest {
         repository.setFeed(cat("1"))
         val viewModel = viewModel()
-        repository.favoriteError = IOException("database is locked")
+        repository.favoriteError = AppError.Storage
 
         viewModel.onEvent(CatsListEvent.ToggleFavorite(cat("1")))
 
@@ -91,7 +96,7 @@ class CatsListViewModelTest {
 
     @Test
     fun `a canceled favorite toggle is not reported as a failure`() = runTest {
-        repository.favoriteError = CancellationException("screen left")
+        repository.favoriteCancelled = true
         val viewModel = viewModel()
 
         viewModel.onEvent(CatsListEvent.ToggleFavorite(cat("1")))

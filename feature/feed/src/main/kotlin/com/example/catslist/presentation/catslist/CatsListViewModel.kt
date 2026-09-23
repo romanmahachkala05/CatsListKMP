@@ -12,6 +12,7 @@ import com.example.catslist.domain.usecase.ToggleFavoriteUseCase
 import com.example.catslist.presentation.FAVORITE_FAILED
 import com.example.catslist.presentation.SnackbarNotifier
 import com.example.catslist.presentation.StateOwner
+import com.example.catslist.presentation.asAppError
 import com.example.catslist.presentation.downloadCat
 import com.example.catslist.presentation.launchCatching
 import kotlinx.collections.immutable.toPersistentSet
@@ -44,7 +45,7 @@ internal class CatsListViewModel(
             // Without this a throwing Room query escapes viewModelScope and kills the process.
             // No RetryableFlow: the feed renders regardless, so there is no retry button to put
             // anywhere.
-            .catch { errorHandler.onFavoriteIdsFailure(it) }
+            .catch { errorHandler.onFavoriteIdsFailure(it.asAppError()) }
             .onEach(stateHolder::showFavorites)
             .launchIn(viewModelScope)
     }

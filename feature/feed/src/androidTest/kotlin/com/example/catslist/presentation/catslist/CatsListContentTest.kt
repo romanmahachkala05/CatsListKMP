@@ -21,14 +21,17 @@ import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.example.catslist.core.designsystem.R as designsystemR
+import com.example.catslist.core.ui.R as uiR
+import com.example.catslist.domain.model.AppError
+import com.example.catslist.domain.model.AppErrorException
 import com.example.catslist.domain.model.Cat
 import com.example.catslist.feature.feed.R
+import com.example.catslist.presentation.UiText
 import com.example.catslist.presentation.components.CAT_CARD_TAG
 import com.example.catslist.presentation.components.CAT_LIST_PLACEHOLDER_TAG
 import com.example.catslist.presentation.theme.CatsListTheme
 import com.example.catslist.testing.cat
 import com.google.common.truth.Truth.assertThat
-import java.io.IOException
 import kotlinx.collections.immutable.persistentSetOf
 import kotlinx.coroutines.flow.flowOf
 import org.junit.Before
@@ -87,12 +90,32 @@ class CatsListContentTest {
         composeRule.onNodeWithText(string(R.string.catslist_empty_message)).assertDoesNotExist()
     }
 
+    /**
+     * `AppErrorException`, not a bare `IOException`: `CatFeedPagingSource` classifies every
+     * failure before Paging ever sees it (ADR-0028), so this is the error the screen really
+     * gets — and an unwrapped one would land on the `Unknown` fallback instead.
+     */
     @Test
     fun aFailedRefreshWithNoCatsOffersARetry() {
-        showContent(cats = emptyList(), states = settled(refresh = LoadState.Error(IOException("offline"))))
+        showContent(
+            cats = emptyList(),
+            states = settled(refresh = LoadState.Error(AppErrorException(AppError.NoConnection))),
+        )
 
-        composeRule.onNodeWithText(string(R.string.catslist_error_loading_cats)).assertIsDisplayed()
+        composeRule.onNodeWithText(string(uiR.string.common_error_no_connection)).assertIsDisplayed()
         composeRule.onNodeWithText(string(designsystemR.string.common_action_retry)).assertIsDisplayed()
+    }
+
+    /** The point of the classification: two failures, two different things said about them. */
+    @Test
+    fun aRateLimitedRefreshSaysSomethingElseEntirely() {
+        showContent(
+            cats = emptyList(),
+            states = settled(refresh = LoadState.Error(AppErrorException(AppError.RateLimited))),
+        )
+
+        composeRule.onNodeWithText(string(uiR.string.common_error_rate_limited)).assertIsDisplayed()
+        composeRule.onNodeWithText(string(uiR.string.common_error_no_connection)).assertDoesNotExist()
     }
 
     /** The paged cat carries no favorite status; the screen overlays it (ADR-0024). */
@@ -117,7 +140,11 @@ class CatsListContentTest {
         showContent(
             cats = listOf(cat("1")),
             states = settled(),
-            state = CatsListState(favoritesStatus = CatsListFavoritesStatus.Unavailable),
+            state = CatsListState(
+                favoritesStatus = CatsListFavoritesStatus.Unavailable(
+                    UiText.Resource(R.string.catslist_error_favorites_unavailable),
+                ),
+            ),
         )
 
         composeRule.onNodeWithText(string(R.string.catslist_error_favorites_unavailable)).assertIsDisplayed()
@@ -138,10 +165,10 @@ class CatsListContentTest {
     fun aFailedNextPageIsAFooterUnderTheCatsThatAreUp() {
         showContent(
             cats = listOf(cat("1")),
-            states = settled(append = LoadState.Error(IOException("offline"))),
+            states = settled(append = LoadState.Error(AppErrorException(AppError.Timeout))),
         )
 
-        composeRule.onNodeWithText(string(R.string.catslist_error_loading_cats)).assertIsDisplayed()
+        composeRule.onNodeWithText(string(uiR.string.common_error_timeout)).assertIsDisplayed()
         composeRule.onNodeWithText(string(R.string.catslist_action_retry)).assertIsDisplayed()
     }
 
