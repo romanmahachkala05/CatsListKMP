@@ -1,7 +1,11 @@
 package com.example.catslist.data.remote
 
 import androidx.paging.PagingSource
+import com.example.catslist.data.error.ErrorMapper
+import com.example.catslist.domain.model.AppError
+import com.example.catslist.domain.model.AppErrorException
 import com.example.catslist.testing.FakeCatApiService
+import com.example.catslist.testing.FakeNetworkMonitor
 import com.example.catslist.testing.catDto
 import com.google.common.truth.Truth.assertThat
 import java.io.IOException
@@ -13,7 +17,8 @@ import org.junit.Test
 class CatFeedPagingSourceTest {
 
     private val api = FakeCatApiService()
-    private val pagingSource = CatFeedPagingSource(api)
+    private val networkMonitor = FakeNetworkMonitor()
+    private val pagingSource = CatFeedPagingSource(api, ErrorMapper(networkMonitor))
 
     @Test
     fun `the first load asks for page 0 and points at the next one`() = runTest {
@@ -99,6 +104,30 @@ class CatFeedPagingSourceTest {
         val result = pagingSource.refresh()
 
         assertThat(result).isInstanceOf(PagingSource.LoadResult.Error::class.java)
+    }
+
+    @Test
+    fun `the error a load carries is classified, not raw`() = runTest {
+        // What the screen reads out of loadState. A raw IOException there would put the
+        // Unknown fallback on a feed that is simply offline (ADR-0028).
+        networkMonitor.setOnline(false)
+        api.error = IOException("offline")
+
+        val result = pagingSource.refresh() as PagingSource.LoadResult.Error
+
+        assertThat((result.throwable as AppErrorException).error).isEqualTo(AppError.NoConnection)
+    }
+
+    @Test
+    fun `the same failure is Unreachable while the device is online`() = runTest {
+        // Same exception, different advice: telling a connected user to check their connection
+        // sends them to fix something that is not broken.
+        networkMonitor.setOnline(true)
+        api.error = IOException("connection reset")
+
+        val result = pagingSource.refresh() as PagingSource.LoadResult.Error
+
+        assertThat((result.throwable as AppErrorException).error).isEqualTo(AppError.Unreachable)
     }
 
     @Test

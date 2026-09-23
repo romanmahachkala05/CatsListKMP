@@ -24,4 +24,8 @@ private val json = Json { ignoreUnknownKeys = true }
 internal fun catHttpClient(engine: HttpClientEngine): HttpClient = HttpClient(engine) {
     defaultRequest { url(CAT_API_BASE_URL) }
     install(ContentNegotiation) { json(json) }
+    // Retrofit's suspend-fun adapter threw for any non-2xx by default; this is that same
+    // behavior stated explicitly, and it is what makes ClientRequestException/
+    // ServerResponseException reach ErrorMapper at all (ADR-0030).
+    expectSuccess = true
 }

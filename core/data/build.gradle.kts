@@ -24,6 +24,9 @@ kotlin {
             implementation(libs.ktor.client.core)
             implementation(libs.ktor.client.content.negotiation)
             implementation(libs.ktor.serialization.kotlinx.json)
+            // Not Ktor's engine dependency — the OkHttpClient the engine and Coil share
+            // (ADR-0030). `jvm()`/`androidTarget()` both resolve it; see CatOkHttpClient.kt.
+            implementation(libs.okhttp)
 
             implementation(libs.androidx.room.runtime)
             implementation(libs.androidx.sqlite.bundled)
@@ -61,6 +64,8 @@ kotlin {
         }
 
         androidDeviceTest.dependencies {
+            // FakeNetworkMonitor, so an instrumented test can build a real ErrorMapper.
+            implementation(project(":core:testing"))
             implementation(libs.androidx.junit)
             implementation(libs.androidx.espresso.core)
             implementation(libs.androidx.room.testing)

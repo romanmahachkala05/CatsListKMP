@@ -28,7 +28,12 @@ local.properties
 
 # Android Studio / IntelliJ
 *.iml
-.idea/
+# `.idea/*`, not `.idea/`: git cannot re-include a path inside an excluded *directory*,
+# so the negation below would silently do nothing.
+.idea/*
+# The one exception - the shared spelling dictionary. Without it every reader's IDE
+# flags the project's own vocabulary (Snackbar, ktlint, favorited, recomposition) as typos.
+!.idea/dictionaries/
 .navigation/
 captures/
 .externalNativeBuild/

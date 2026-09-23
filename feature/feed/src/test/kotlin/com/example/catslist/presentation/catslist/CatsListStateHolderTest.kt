@@ -1,5 +1,6 @@
 package com.example.catslist.presentation.catslist
 
+import com.example.catslist.presentation.UiText
 import com.google.common.truth.Truth.assertThat
 import kotlinx.collections.immutable.persistentSetOf
 import org.junit.Test
@@ -7,6 +8,9 @@ import org.junit.Test
 class CatsListStateHolderTest {
 
     private val stateHolder = CatsListStateHolder()
+
+    /** Which message it is does not matter here — the holder stores what it is handed. */
+    private val unavailable = UiText.Raw("favorites are unavailable")
 
     @Test
     fun `starts live with no favorites`() {
@@ -29,16 +33,16 @@ class CatsListStateHolderTest {
     fun `going unavailable keeps the ids already on screen`() {
         stateHolder.showFavorites(persistentSetOf("1"))
 
-        stateHolder.showFavoritesUnavailable()
+        stateHolder.showFavoritesUnavailable(unavailable)
 
         val state = stateHolder.state.value
-        assertThat(state.favoritesStatus).isEqualTo(CatsListFavoritesStatus.Unavailable)
+        assertThat(state.favoritesStatus).isEqualTo(CatsListFavoritesStatus.Unavailable(unavailable))
         assertThat(state.favoriteIds).containsExactly("1")
     }
 
     @Test
     fun `a later emission recovers from unavailable`() {
-        stateHolder.showFavoritesUnavailable()
+        stateHolder.showFavoritesUnavailable(unavailable)
 
         stateHolder.showFavorites(persistentSetOf("1"))
 
@@ -48,7 +52,7 @@ class CatsListStateHolderTest {
     @Test
     fun `reset returns to the initial state`() {
         stateHolder.showFavorites(persistentSetOf("1"))
-        stateHolder.showFavoritesUnavailable()
+        stateHolder.showFavoritesUnavailable(unavailable)
 
         stateHolder.reset()
 

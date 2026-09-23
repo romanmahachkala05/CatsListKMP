@@ -3,10 +3,13 @@ package com.example.catslist.testing
 import androidx.paging.LoadState
 import androidx.paging.LoadStates
 import androidx.paging.PagingData
+import com.example.catslist.domain.model.AppError
+import com.example.catslist.domain.model.AppErrorException
 import com.example.catslist.domain.model.Cat
 import com.example.catslist.domain.repository.CatRepository
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toPersistentList
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -25,16 +28,29 @@ class FakeCatRepository : CatRepository {
     private val fetched = MutableStateFlow<List<Cat>>(emptyList())
     private val favorited = MutableStateFlow<List<Cat>>(emptyList())
 
-    /** When set, [favorites] fails with it on every emission. */
-    var favoritesError: Throwable? = null
+    /**
+     * When set, [favorites] fails with it on every emission.
+     *
+     * An [AppError] and not a `Throwable`, because that is the real repository's contract:
+     * everything crossing out of `data` is already classified, wrapped in an
+     * [AppErrorException] (ADR-0028). A fake that threw a bare `IOException` would let a
+     * ViewModel pass a test it would fail against the real thing.
+     */
+    var favoritesError: AppError? = null
 
     /** When set, [toggleFavorite] and [removeFavorite] fail with it instead of writing. */
-    var favoriteError: Throwable? = null
+    var favoriteError: AppError? = null
+
+    /**
+     * When true, a write throws [CancellationException] — the one failure the real repository
+     * deliberately does *not* classify, because it means the caller went away.
+     */
+    var favoriteCancelled: Boolean = false
 
     override val favorites: Flow<ImmutableList<Cat>> =
         favorited.asStateFlow()
             .map { it.toPersistentList() }
-            .onEach { favoritesError?.let { error -> throw error } }
+            .onEach { favoritesError?.let { error -> throw AppErrorException(error) } }
 
     override val feed: Flow<PagingData<Cat>> = fetched.map { cats ->
         // Fully loaded in every direction: `asSnapshot()` otherwise waits for an append
@@ -59,13 +75,18 @@ class FakeCatRepository : CatRepository {
     }
 
     override suspend fun toggleFavorite(cat: Cat) {
-        favoriteError?.let { throw it }
+        failIfAsked()
         if (favorited.value.any { it.id == cat.id }) removeFavorite(cat) else addFavorite(cat)
     }
 
     override suspend fun removeFavorite(cat: Cat) {
-        favoriteError?.let { throw it }
+        failIfAsked()
         favorited.value = favorited.value.filterNot { it.id == cat.id }
+    }
+
+    private fun failIfAsked() {
+        if (favoriteCancelled) throw CancellationException("canceled by the test")
+        favoriteError?.let { throw AppErrorException(it) }
     }
 
     private fun addFavorite(cat: Cat) {

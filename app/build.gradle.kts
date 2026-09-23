@@ -26,7 +26,7 @@ val hasReleaseSigning = listOf("storeFile", "storePassword", "keyAlias", "keyPas
 // versionCode is derived from the name, so the two cannot drift apart. Minor and patch are
 // allowed 0-99 each.
 val versionMajor = 2
-val versionMinor = 2
+val versionMinor = 3
 val versionPatch = 0
 
 android {
@@ -56,7 +56,8 @@ android {
         release {
             // Null with no keystore, producing an unsigned APK rather than a failed build.
             signingConfig = signingConfigs.findByName("release")
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
@@ -77,6 +78,12 @@ android {
     }
 }
 
+// :app configures Compose directly rather than through `catslist.compose`, which is an Android
+// *library* convention — so the shared stability config is pointed at by hand here (ADR-0029).
+composeCompiler {
+    stabilityConfigurationFiles.add(rootProject.layout.projectDirectory.file("config/compose-stability.conf"))
+}
+
 java {
     toolchain {
         languageVersion.set(JavaLanguageVersion.of(17))
@@ -84,7 +91,6 @@ java {
 }
 
 dependencies {
-    implementation(project(":core:model"))
     implementation(project(":core:data"))
     implementation(project(":core:ui"))
     implementation(project(":core:designsystem"))
@@ -110,6 +116,13 @@ dependencies {
     // in the feature modules.
     implementation(platform(libs.koin.bom))
     implementation(libs.koin.android)
+    // App builds Coil's singleton loader over the one OkHttpClient the Koin graph provides,
+    // so the composition root needs all three types (ADR-0030).
+    implementation(libs.okhttp)
+    implementation(platform(libs.coil.bom))
+    implementation(libs.coil)
+    implementation(libs.coil.core)
+    implementation(libs.coil.network.okhttp)
 
     testImplementation(project(":core:testing"))
     testImplementation(libs.junit)

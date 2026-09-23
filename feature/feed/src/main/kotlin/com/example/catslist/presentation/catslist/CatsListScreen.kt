@@ -27,9 +27,12 @@ import androidx.paging.PagingData
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.itemKey
+import com.example.catslist.domain.model.AppError
+import com.example.catslist.domain.model.AppErrorException
 import com.example.catslist.domain.model.Cat
 import com.example.catslist.feature.feed.R
 import com.example.catslist.presentation.UiText
+import com.example.catslist.presentation.asAppError
 import com.example.catslist.presentation.components.CatItem
 import com.example.catslist.presentation.components.CatItemPlaceholder
 import com.example.catslist.presentation.components.CatListPlaceholder
@@ -38,7 +41,9 @@ import com.example.catslist.presentation.components.EmptyMessage
 import com.example.catslist.presentation.components.ErrorMessage
 import com.example.catslist.presentation.components.RefreshSignal
 import com.example.catslist.presentation.heldAtLeast
+import com.example.catslist.presentation.resolve
 import com.example.catslist.presentation.theme.CatsListTheme
+import com.example.catslist.presentation.toUiText
 import kotlinx.collections.immutable.persistentSetOf
 import kotlinx.coroutines.flow.flowOf
 import org.koin.androidx.compose.koinViewModel
@@ -104,7 +109,9 @@ internal fun CatsListContent(
 @Composable
 private fun EmptyFeed(refresh: LoadState, onRetry: () -> Unit) {
     if (refresh is LoadState.Error) {
-        ErrorMessage(message = UiText.Resource(R.string.catslist_error_loading_cats), onRetry = onRetry)
+        // Not one message for every failure anymore: the PagingSource classified it, so
+        // being offline, being rate-limited and a 503 each read differently (ADR-0028).
+        ErrorMessage(message = refresh.error.asAppError().toUiText(), onRetry = onRetry)
     } else {
         EmptyMessage(UiText.Resource(R.string.catslist_empty_message))
     }
@@ -132,13 +139,13 @@ private fun CatsFeed(
         topInset = contentPadding.calculateTopPadding(),
     ) {
         LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = contentPadding) {
-            when (state.favoritesStatus) {
+            when (val favorites = state.favoritesStatus) {
                 CatsListFavoritesStatus.Live -> Unit
                 // Above the cats, not in place of them: only the star icons are stale.
-                CatsListFavoritesStatus.Unavailable -> item {
+                is CatsListFavoritesStatus.Unavailable -> item {
                     ListNotice {
                         Text(
-                            text = stringResource(R.string.catslist_error_favorites_unavailable),
+                            text = favorites.message.resolve(),
                             style = MaterialTheme.typography.bodyMedium,
                             textAlign = TextAlign.Center,
                             color = MaterialTheme.colorScheme.error,
@@ -159,13 +166,15 @@ private fun CatsFeed(
                 )
             }
 
-            when (pagingItems.loadState.append) {
+            when (val append = pagingItems.loadState.append) {
                 // The next card's skeleton, so the page swaps shimmer for photo in place.
                 is LoadState.Loading -> item { CatItemPlaceholder() }
                 is LoadState.Error -> item {
                     ListNotice {
                         Text(
-                            text = stringResource(R.string.catslist_error_loading_cats),
+                            // Classified the same way as a failed refresh, so a rate-limited
+                            // next page says so instead of blaming the connection (ADR-0028).
+                            text = append.error.asAppError().toUiText().resolve(),
                             style = MaterialTheme.typography.bodyMedium,
                             textAlign = TextAlign.Center,
                             color = MaterialTheme.colorScheme.error,
@@ -220,7 +229,11 @@ private fun CatsListFavoritesUnavailablePreview() {
         val pagingItems = flowOf(PagingData.from(cats)).collectAsLazyPagingItems()
         CatsListContent(
             pagingItems = pagingItems,
-            state = CatsListState(favoritesStatus = CatsListFavoritesStatus.Unavailable),
+            state = CatsListState(
+                favoritesStatus = CatsListFavoritesStatus.Unavailable(
+                    UiText.Resource(R.string.catslist_error_favorites_unavailable),
+                ),
+            ),
             onEvent = {},
         )
     }
@@ -245,7 +258,9 @@ private fun CatsListLoadingPreview() {
 private fun CatsListErrorPreview() {
     CatsListTheme {
         val errorStates = LoadStates(
-            refresh = LoadState.Error(IllegalStateException("preview")),
+            // A real AppError, so the preview renders the message the screen will actually
+            // show rather than the Unknown fallback a bare exception maps to.
+            refresh = LoadState.Error(AppErrorException(AppError.NoConnection)),
             prepend = LoadState.NotLoading(endOfPaginationReached = false),
             append = LoadState.NotLoading(endOfPaginationReached = false),
         )

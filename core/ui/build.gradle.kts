@@ -14,6 +14,9 @@ dependencies {
 
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
+    // UiText.Resource holds its format arguments as an ImmutableList, so this type is part
+    // of a public signature here (ADR-0029).
+    api(libs.kotlinx.collections.immutable)
 
     testImplementation(project(":core:testing"))
     testImplementation(libs.junit)

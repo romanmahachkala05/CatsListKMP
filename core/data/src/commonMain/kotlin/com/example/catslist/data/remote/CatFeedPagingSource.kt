@@ -2,6 +2,8 @@ package com.example.catslist.data.remote
 
 import androidx.paging.PagingSource
 import androidx.paging.PagingState
+import com.example.catslist.data.error.ErrorMapper
+import com.example.catslist.domain.model.AppErrorException
 import com.example.catslist.domain.model.Cat
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.sync.Mutex
@@ -10,6 +12,7 @@ import kotlinx.coroutines.sync.withLock
 /** Pages the feed straight from TheCatAPI, keeping nothing on disk. Only favorites persist. */
 class CatFeedPagingSource(
     private val catApiService: CatApiService,
+    private val errorMapper: ErrorMapper,
 ) : PagingSource<Int, Cat>() {
 
     /**
@@ -31,7 +34,9 @@ class CatFeedPagingSource(
 
     /**
      * Every failure becomes a [LoadResult.Error]: anything thrown out of here reaches
-     * `viewModelScope` through `cachedIn` and kills the process (ADR-0013).
+     * `viewModelScope` through `cachedIn` and kills the process (ADR-0013). The error it
+     * carries is always an [AppErrorException], so the screen reads a classified failure out
+     * of `loadState` rather than guessing at an exception class (ADR-0028).
      */
     @Suppress("TooGenericExceptionCaught")
     override suspend fun load(params: LoadParams<Int>): LoadResult<Int, Cat> {
@@ -51,7 +56,7 @@ class CatFeedPagingSource(
             // Paging cancels a load it no longer needs; that is not a failure to report.
             throw error
         } catch (error: Exception) {
-            LoadResult.Error(error)
+            LoadResult.Error(AppErrorException(errorMapper.map(error)))
         }
     }
 

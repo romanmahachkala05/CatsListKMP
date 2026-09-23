@@ -3,4 +3,15 @@
     <string name="common_favorite_failed_message">Couldn\'t update favorites. Try again.</string>
     <string name="common_download_started_message">Downloading started</string>
     <string name="common_download_failed_message">Couldn\'t download this cat image. Try again.</string>
+
+    <!-- The default wording for each AppError, shared by every screen (ADR-0028). -->
+    <string name="common_error_no_connection">You\'re offline. Check your connection and try again.</string>
+    <string name="common_error_timeout">That took too long. Try again.</string>
+    <string name="common_error_unreachable">Couldn\'t reach the cat server. Try again.</string>
+    <string name="common_error_rate_limited">Too many requests just now. Wait a moment and try again.</string>
+    <string name="common_error_server">The cat server had a problem (%1$d). Try again shortly.</string>
+    <string name="common_error_client">Something was wrong with that request (%1$d).</string>
+    <string name="common_error_malformed">The cat server sent something unexpected.</string>
+    <string name="common_error_storage">Couldn\'t read your saved cats. Try again.</string>
+    <string name="common_error_unknown">Something went wrong. Try again.</string>
 </resources>

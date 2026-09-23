@@ -1,5 +1,6 @@
 package com.example.catslist.presentation.favoritecats
 
+import com.example.catslist.domain.model.AppError
 import com.example.catslist.domain.usecase.DownloadCatImageUseCase
 import com.example.catslist.domain.usecase.GetFavoriteCatsUseCase
 import com.example.catslist.domain.usecase.RemoveFavoriteUseCase
@@ -48,7 +49,7 @@ class FavoriteCatsViewModelTest {
 
     @Test
     fun `favorites that end in an error are shown, not thrown`() = runTest {
-        repository.favoritesError = IOException("database is corrupt")
+        repository.favoritesError = AppError.Storage
 
         val viewModel = viewModel()
 
@@ -59,7 +60,7 @@ class FavoriteCatsViewModelTest {
 
     @Test
     fun `Retry resubscribes to favorites that had ended in an error`() = runTest {
-        repository.favoritesError = IOException("database is corrupt")
+        repository.favoritesError = AppError.Storage
         val viewModel = viewModel()
         repository.favoritesError = null
         repository.setFavorites(cat("1"))
@@ -94,7 +95,7 @@ class FavoriteCatsViewModelTest {
     fun `a failed removal is reported instead of crashing the screen`() = runTest {
         repository.setFavorites(cat("1"))
         val viewModel = viewModel()
-        repository.favoriteError = IOException("database is locked")
+        repository.favoriteError = AppError.Storage
 
         viewModel.onEvent(FavoriteCatsEvent.RemoveFavorite(cat("1")))
 
@@ -106,7 +107,7 @@ class FavoriteCatsViewModelTest {
     fun `a canceled removal is not reported as a failure`() = runTest {
         repository.setFavorites(cat("1"))
         val viewModel = viewModel()
-        repository.favoriteError = CancellationException("screen left")
+        repository.favoriteCancelled = true
 
         viewModel.onEvent(FavoriteCatsEvent.RemoveFavorite(cat("1")))
 

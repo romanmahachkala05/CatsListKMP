@@ -392,6 +392,24 @@ load; `PagingData` is exposed alongside `state` rather than inside it, because
 - `@Immutable` / `@Stable` on `State` and every UI model type. Use
   `ImmutableList` / `persistentListOf()` (kotlinx.collections.immutable) in state,
   never a raw `List` you rebuild each emission.
+- **Strong skipping is on, so most manual annotation is obsolete — but not all of
+  it.** Two cases the compiler still cannot work out on its own, and neither is
+  fixed by an annotation on the call site:
+  - a **sealed interface** used as a parameter type. An implementation the
+    compiler has not seen could be anything, so it is unstable unless the
+    interface itself is `@Immutable` — and that promise is only true if every
+    case is really immutable (`UiText.Resource` holds an `ImmutableList`, not a
+    `List`, for exactly this reason).
+  - a class from a module the **Compose compiler does not compile**
+    (`:core:model`) or from a **third-party library**. Nothing there carries
+    stability metadata, so it is assumed unstable. These are declared in
+    [`config/compose-stability.conf`](../config/compose-stability.conf), which
+    every Compose module points at — never by moving the class or wrapping it.
+- **Do not guess at any of this — measure it.** `./gradlew assembleRelease
+  -Pcatslist.composeMetrics` writes the compiler's own stability and skippability
+  reports to each module's `build/compose-metrics/`. A parameter listed
+  `unstable` is compared by identity and its composable never skips. See
+  [ADR-0033](DECISIONS.md#adr-0033).
 - **Design system** lives in `core:designsystem`: theme + tokens + reusable
   components (buttons, cells, loaders, error block, empty state, dialog host).
   Screens compose these; they don't hand-roll spacing/colors. `core:ui` is a

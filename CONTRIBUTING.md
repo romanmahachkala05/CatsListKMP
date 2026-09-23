@@ -52,6 +52,18 @@ suite nobody runs is no suite at all.
 Start an emulator first (`emulator -avd <name>`, or from Android Studio);
 `connectedDebugAndroidTest` fails with no device attached.
 
+**Keep the device awake.** A screen that goes to sleep mid-run takes every
+Compose UI test in the module with it, all failing with:
+
+    java.lang.IllegalStateException: No compose hierarchies found in the app.
+    Possible reasons include: (1) the Activity that calls setContent did not launch...
+
+That reads like a broken test setup, but a whole module's UI tests dying at once
+is almost always a sleeping screen. Wake it and pin it before rerunning:
+
+    adb shell input keyevent KEYCODE_WAKEUP
+    adb shell svc power stayon true
+
 Also useful:
 
 | Command | Use |
