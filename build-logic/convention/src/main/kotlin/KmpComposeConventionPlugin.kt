@@ -44,14 +44,16 @@ class KmpComposeConventionPlugin : Plugin<Project> {
                         implementation(library("compose-mp-ui-tooling-preview"))
                     }
                 }
-                // Desktop UI tests (`runComposeUiTest`), plus Skia's native library for the
-                // machine running them. Even reading a string asks Skia for the system theme,
-                // so without it a test that touches resources fails to initialise rather than
-                // failing an assertion.
+                // Desktop UI tests (`runComposeUiTest`), plus what a desktop app has that a bare
+                // JVM does not: Skia's native library for the machine running them — even
+                // reading a string asks it for the system theme — and a `Dispatchers.Main`,
+                // which Paging's Compose collector runs on. Without either, a test fails to
+                // initialise rather than failing an assertion.
                 sourceSets.named("jvmTest").configure {
                     dependencies {
                         implementation(library("compose-mp-ui-test"))
                         implementation(ComposePlugin.DesktopDependencies.currentOs)
+                        implementation(library("kotlinx-coroutines-swing"))
                     }
                 }
             }

@@ -19,14 +19,16 @@ import androidx.paging.LoadStates
 import androidx.paging.PagingData
 import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import androidx.test.platform.app.InstrumentationRegistry
-import com.example.catslist.core.designsystem.resources.Res
+import com.example.catslist.core.designsystem.resources.Res as DesignsystemRes
 import com.example.catslist.core.designsystem.resources.common_action_retry
 import com.example.catslist.core.designsystem.resources.common_cd_favorite_cat
 import com.example.catslist.domain.model.AppError
 import com.example.catslist.domain.model.AppErrorException
 import com.example.catslist.domain.model.Cat
-import com.example.catslist.feature.feed.R
+import com.example.catslist.feature.feed.resources.Res
+import com.example.catslist.feature.feed.resources.catslist_action_retry
+import com.example.catslist.feature.feed.resources.catslist_empty_message
+import com.example.catslist.feature.feed.resources.catslist_error_favorites_unavailable
 import com.example.catslist.presentation.UiText
 import com.example.catslist.presentation.components.CAT_CARD_TAG
 import com.example.catslist.presentation.components.CAT_LIST_PLACEHOLDER_TAG
@@ -55,8 +57,6 @@ class CatsListContentTest {
     @get:Rule
     val composeRule = createAndroidComposeRule<ComponentActivity>()
 
-    private val context = InstrumentationRegistry.getInstrumentation().targetContext
-
     /** Set from composition, because only the composable can read the window's insets. */
     private var topInsetPx = 0
 
@@ -84,7 +84,7 @@ class CatsListContentTest {
     fun anEmptyFeedSaysSoInsteadOfShimmeringForever() {
         showContent(cats = emptyList(), states = settled())
 
-        composeRule.onNodeWithText(string(R.string.catslist_empty_message)).assertIsDisplayed()
+        composeRule.onNodeWithText(string(Res.string.catslist_empty_message)).assertIsDisplayed()
         composeRule.onNodeWithTag(CAT_LIST_PLACEHOLDER_TAG).assertDoesNotExist()
     }
 
@@ -93,7 +93,7 @@ class CatsListContentTest {
         showContent(cats = emptyList(), states = settled(refresh = LoadState.Loading))
 
         composeRule.onNodeWithTag(CAT_LIST_PLACEHOLDER_TAG).assertIsDisplayed()
-        composeRule.onNodeWithText(string(R.string.catslist_empty_message)).assertDoesNotExist()
+        composeRule.onNodeWithText(string(Res.string.catslist_empty_message)).assertDoesNotExist()
     }
 
     /**
@@ -109,7 +109,7 @@ class CatsListContentTest {
         )
 
         composeRule.onNodeWithText(errorText(AppError.NoConnection)).assertIsDisplayed()
-        composeRule.onNodeWithText(designString(Res.string.common_action_retry)).assertIsDisplayed()
+        composeRule.onNodeWithText(string(DesignsystemRes.string.common_action_retry)).assertIsDisplayed()
     }
 
     /** The point of the classification: two failures, two different things said about them. */
@@ -135,7 +135,7 @@ class CatsListContentTest {
             onEvent = { events += it },
         )
 
-        composeRule.onAllNodesWithContentDescription(designString(Res.string.common_cd_favorite_cat))[1]
+        composeRule.onAllNodesWithContentDescription(string(DesignsystemRes.string.common_cd_favorite_cat))[1]
             .performClick()
 
         assertThat(events).containsExactly(CatsListEvent.ToggleFavorite(cat("2").copy(isFavorite = true)))
@@ -148,13 +148,13 @@ class CatsListContentTest {
             states = settled(),
             state = CatsListState(
                 favoritesStatus = CatsListFavoritesStatus.Unavailable(
-                    UiText.AndroidResource(R.string.catslist_error_favorites_unavailable),
+                    UiText.Resource(Res.string.catslist_error_favorites_unavailable),
                 ),
             ),
         )
 
-        composeRule.onNodeWithText(string(R.string.catslist_error_favorites_unavailable)).assertIsDisplayed()
-        composeRule.onAllNodesWithContentDescription(designString(Res.string.common_cd_favorite_cat))[0]
+        composeRule.onNodeWithText(string(Res.string.catslist_error_favorites_unavailable)).assertIsDisplayed()
+        composeRule.onAllNodesWithContentDescription(string(DesignsystemRes.string.common_cd_favorite_cat))[0]
             .assertIsDisplayed()
     }
 
@@ -175,7 +175,7 @@ class CatsListContentTest {
         )
 
         composeRule.onNodeWithText(errorText(AppError.Timeout)).assertIsDisplayed()
-        composeRule.onNodeWithText(string(R.string.catslist_action_retry)).assertIsDisplayed()
+        composeRule.onNodeWithText(string(Res.string.catslist_action_retry)).assertIsDisplayed()
     }
 
     /**
@@ -229,10 +229,8 @@ class CatsListContentTest {
         append = append,
     )
 
-    private fun string(id: Int) = context.getString(id)
-
-    /** `:core:designsystem`'s strings are Compose resources, read the way the app reads them. */
-    private fun designString(resource: StringResource) = runBlocking { getString(resource) }
+    /** Strings are Compose resources (ADR-0037), read the way the app reads them. */
+    private fun string(resource: StringResource) = runBlocking { getString(resource) }
 
     /** `:core:ui`'s strings are Compose resources, read the way the app reads them. */
     private fun errorText(error: AppError) = runBlocking { error.toUiText().load() }

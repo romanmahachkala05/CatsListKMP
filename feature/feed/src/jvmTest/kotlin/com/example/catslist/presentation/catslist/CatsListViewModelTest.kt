@@ -6,7 +6,8 @@ import com.example.catslist.domain.usecase.DownloadCatImageUseCase
 import com.example.catslist.domain.usecase.GetCatFeedUseCase
 import com.example.catslist.domain.usecase.GetFavoriteCatsUseCase
 import com.example.catslist.domain.usecase.ToggleFavoriteUseCase
-import com.example.catslist.feature.feed.R
+import com.example.catslist.feature.feed.resources.Res
+import com.example.catslist.feature.feed.resources.catslist_error_favorites_unavailable
 import com.example.catslist.presentation.DOWNLOAD_FAILED
 import com.example.catslist.presentation.DOWNLOAD_STARTED
 import com.example.catslist.presentation.FAVORITE_FAILED
@@ -78,7 +79,7 @@ class CatsListViewModelTest {
         val viewModel = viewModel()
 
         assertThat(viewModel.state.value.favoritesStatus).isEqualTo(
-            CatsListFavoritesStatus.Unavailable(UiText.AndroidResource(R.string.catslist_error_favorites_unavailable)),
+            CatsListFavoritesStatus.Unavailable(UiText.Resource(Res.string.catslist_error_favorites_unavailable)),
         )
         assertThat(viewModel.pagedCats.asSnapshot().map { it.id }).containsExactly("1")
     }

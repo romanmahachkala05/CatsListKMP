@@ -28,7 +28,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -56,11 +55,10 @@ import com.example.catslist.presentation.load
 fun CatsNavDisplay(notifier: SnackbarNotifier, modifier: Modifier = Modifier) {
     var selected by remember { mutableStateOf<NavKey>(CatsListNavKey) }
     val snackbarHostState = remember { SnackbarHostState() }
-    val context = LocalContext.current
 
     LaunchedEffect(notifier) {
         notifier.messages.collect { message ->
-            snackbarHostState.showSnackbar(message.load(context))
+            snackbarHostState.showSnackbar(message.load())
         }
     }
 
