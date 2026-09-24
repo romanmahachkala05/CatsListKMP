@@ -83,6 +83,8 @@ coil = { module = "io.coil-kt.coil3:coil" }
 coil-core = { module = "io.coil-kt.coil3:coil-core" }
 coil-compose = { module = "io.coil-kt.coil3:coil-compose" }
 coil-network-okhttp = { module = "io.coil-kt.coil3:coil-network-okhttp" }
+# iOS's fetcher: Coil over a Ktor client on the same URLSession engine the API uses.
+coil-network-ktor3 = { module = "io.coil-kt.coil3:coil-network-ktor3" }
 androidx-room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }
 androidx-sqlite-bundled = { module = "androidx.sqlite:sqlite-bundled", version.ref = "sqlite" }
 androidx-room-compiler = { module = "androidx.room:room-compiler", version.ref = "room" }

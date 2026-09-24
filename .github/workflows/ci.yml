@@ -89,6 +89,14 @@ jobs:
       - name: Build and test for iOS
         run: ./gradlew iosSimulatorArm64Test compileKotlinIosArm64 :shared:linkDebugFrameworkIosSimulatorArm64 --stacktrace
 
+      # The app itself, as Xcode builds it: the project, its Swift and the Gradle build phase.
+      # Unsigned, since a runner has no Apple ID; signing is the one step left to a real device.
+      - name: Build the iOS app
+        run: >-
+          xcodebuild -project iosApp/iosApp.xcodeproj -scheme iosApp -configuration Debug
+          -destination 'generic/platform=iOS Simulator' -derivedDataPath build/ios
+          CODE_SIGNING_ALLOWED=NO build
+
       - name: Upload test reports
         if: failure()
         uses: actions/upload-artifact@v7

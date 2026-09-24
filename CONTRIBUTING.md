@@ -83,6 +83,14 @@ toolchain; the Gradle daemon itself uses the criteria in
 if the machine has none) whatever `JAVA_HOME` happens to be. Regenerate that file with
 `./gradlew updateDaemonJvm --jvm-version=17`; do not hand-edit it.
 
+### Running on iOS (Mac only)
+
+Open `iosApp/iosApp.xcodeproj` and run the `iosApp` scheme; its first build phase runs Gradle
+for the `Shared` framework. For a simulator nothing else is needed. For a phone, put your
+team in `iosApp/Configuration/Config.local.xcconfig` (gitignored) as `TEAM_ID = …`, or pick
+it in Xcode's Signing tab; on a free Apple ID the phone then has to trust the developer once,
+under Settings → General → VPN & Device Management, and the install lasts seven days.
+
 ---
 
 ## Where things live
@@ -97,7 +105,8 @@ for the full dependency graph and the rules behind it.
 | Repository impl, API service, Room entity/DAO/migrations, DI modules | `:core:data` | `src/commonMain/kotlin/…/data/` |
 | Platform splits (database path, HTTP engine, image download, network monitor) | `:core:data` | `src/androidMain/`, `src/jvmMain/`, `src/iosMain/`; the OkHttp client both JVM targets share in `src/jvmAndAndroidMain/` |
 | iOS tests (the real database, Darwin failures) — Mac only | `:core:data` | `src/iosTest/kotlin/` |
-| `MainViewController()` — what the iOS app hosts | `:shared` | `src/iosMain/kotlin/…/` |
+| `startCatsApp()`, `MainViewController()` — what the iOS app calls and hosts | `:shared` | `src/iosMain/kotlin/…/` |
+| The iOS app: Xcode project, Swift launcher, icon, `Info.plist` | `iosApp/` | `iosApp/iosApp/`; signing and bundle ID in `iosApp/Configuration/` |
 | Committed Room schemas | `:core:data` | `schemas/` |
 | ViewModel-facing shared primitives: `UiText`, `launchCatching`, `RetryableFlow`, `StateOwner`, `SnackbarNotifier` | `:core:ui` | `src/commonMain/kotlin/…/presentation/`, strings in `src/commonMain/composeResources/` |
 | Theme, shared components (e.g. the cat image card) | `:core:designsystem` | `src/commonMain/kotlin/…/presentation/theme/`, `…/components/`; icons and strings in `src/commonMain/composeResources/` |

@@ -68,3 +68,8 @@ CLAUDE.local.md
 .aider*
 .windsurfrules
 .github/copilot-instructions.md
+
+# iOS: per-user Xcode state, and the one personal setting (the signing team).
+xcuserdata/
+*.xcuserstate
+iosApp/Configuration/Config.local.xcconfig

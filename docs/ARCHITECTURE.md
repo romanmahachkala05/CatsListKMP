@@ -43,7 +43,7 @@ none of the ceremony. Split when a real trigger shows up — see ADR-0001's
 
 Module graph (arrows = "depends on"):
 
-    :app, :desktopApp  ──▶ :shared                           (:desktopApp: jvm only)
+    :app, :desktopApp, iosApp/ ──▶ :shared                  (:desktopApp: jvm only; iosApp/: Xcode, links the Shared framework)
     :shared  ──▶ :feature:feed, :feature:favorites          (multiplatform: common + android + jvm + ios)
       │          └──▶ :core:domain, :core:ui, :core:designsystem
       └──▶ :core:data, :core:ui, :core:designsystem

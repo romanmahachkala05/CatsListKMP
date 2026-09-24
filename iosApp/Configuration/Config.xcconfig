@@ -1,0 +1,10 @@
+// Your Apple developer team, which signing needs. Kept out of git: put
+//     TEAM_ID = <your team id>
+// in Config.local.xcconfig beside this file, or pick the team in Xcode's Signing tab.
+TEAM_ID =
+#include? "Config.local.xcconfig"
+
+PRODUCT_NAME = CatsList
+// Suffixed with the team, because a bundle ID belongs to the first team that registers it —
+// a free Apple ID cannot reuse one somebody else already has.
+PRODUCT_BUNDLE_IDENTIFIER = com.example.catslist.CatsList$(TEAM_ID)
