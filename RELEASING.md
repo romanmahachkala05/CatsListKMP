@@ -21,9 +21,11 @@ CI can supply the same four values as `CATSLIST_STOREFILE`,
 ## Cutting a release
 
 1. **Bump the version** — `catslist.version` in `gradle.properties`, the one
-   number both apps ship. Android's `versionCode` and `versionName` are derived
-   from it ([ADR-0021](docs/DECISIONS.md#adr-0021)), and it is the desktop
-   installers' version, so there is no second number to remember.
+   number every app ships. Android's `versionCode` and `versionName` are derived
+   from it ([ADR-0021](docs/DECISIONS.md#adr-0021)), it is the desktop
+   installers' version, and the iOS build stamps it into `Info.plist`
+   ([ADR-0040](docs/DECISIONS.md#adr-0040)), so there is no second number to
+   remember.
 2. **Merge to `dev`** as usual, with CI green.
 3. **Merge `dev` into `main`** via a pull request, so the release commit is on
    `main` and has passed the same gate.
@@ -37,7 +39,9 @@ CI can supply the same four values as `CATSLIST_STOREFILE`,
    An `app-release-unsigned.apk` means the keystore was not picked up.
 
    The release build runs R8 (`isMinifyEnabled`, `isShrinkResources`), which
-   takes the APK from 13.6 MB to 2.3 MB. There are no hand-written keep rules —
+   took the Android-only 2.x APK from 13.6 MB to 2.3 MB. From 3.0.0 it is 7.4 MB, most of it
+   the bundled SQLite's native library for four ABIs — the price of one SQLite on every
+   platform ([ADR-0029](docs/DECISIONS.md#adr-0029)). There are no hand-written keep rules —
    Room, Koin, kotlinx.serialization, Ktor and Coil all ship their own, and
    a rule that is never exercised is worse than none. Because R8 failures show
    up at runtime rather than at build time, check the minified APK on a device
@@ -63,5 +67,8 @@ CI can supply the same four values as `CATSLIST_STOREFILE`,
 
 - Nothing publishes to Play or to any desktop store. The GitHub release is the
   distribution point.
+- iOS has no release artifact: without a paid Apple Developer account it is built
+  from source ([ADR-0041](docs/DECISIONS.md#adr-0041)). Before tagging, run it on the
+  simulator and on a phone, from Xcode on a Mac.
 - Neither the release build nor the instrumented tests run in CI
   ([ADR-0018](docs/DECISIONS.md#adr-0018)).

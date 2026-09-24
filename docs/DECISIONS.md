@@ -67,6 +67,7 @@ that fail without the fix. They are here because finding them was the work.
 | [0038](#adr-0038) | Adaptive layout: one grid rule, one width breakpoint | Accepted |
 | [0039](#adr-0039) | iOS targets for every multiplatform module | Accepted |
 | [0040](#adr-0040) | The iOS app: a thin Xcode project around `CatsApp()` | Accepted |
+| [0041](#adr-0041) | 3.0.0: three platforms, three ways to ship | Accepted |
 
 ---
 
@@ -2109,3 +2110,48 @@ is the same: a launcher and nothing else, with every screen in `commonMain`.
 spec. For one target that no one edits often, that is one more tool to install
 on every Mac and in CI, and synchronized folders already keep the hand-written
 file from churning.
+
+---
+
+## ADR-0041
+
+### 3.0.0: three platforms, three ways to ship
+
+**Accepted** · 2026-09-24
+
+**Context.** 3.0.0 is the first release since this repository forked from
+`CatsListApplication` at 2.2.0 ([ADR-0028](#adr-0028)). Nothing reached `main`
+in between. Replacing libraries and moving modules to KMP changed nothing a user
+could see, so there was nothing to release until the app ran on new platforms.
+It now runs on three, and each has a different answer to "how does someone get
+it".
+
+**Decision.** One version, 3.0.0, from `catslist.version`: Android derives
+`versionCode` from it, the desktop installers carry it as it is, and the iOS build
+stamps it into `Info.plist` ([ADR-0040](#adr-0040)). The major version is for
+the platforms, not for any change to the app's behavior, which is the same on
+all three.
+
+- **Android:** the release APK, R8-minified and attached to the GitHub release,
+  as before.
+- **Desktop:** MSI, DMG and DEB, built on each OS's runner by `release.yml`, and
+  unsigned. Signing needs a code-signing certificate and an Apple Developer ID,
+  and this project has neither, so SmartScreen and Gatekeeper warn on first
+  launch.
+- **iOS: build from source.** A free Apple ID can put the app on its owner's
+  phone for seven days. It cannot produce a file anyone else can install, and
+  TestFlight and the App Store both need the paid program. The README says so,
+  rather than implying a download that does not exist.
+
+**Consequences.** The release was run by hand on each platform before tagging:
+- Android: `verifyOnDevice` on an emulator
+- Windows: the desktop app
+- iOS: the simulator, and an iPhone 11 on iOS 27, where feed, favorites across
+  a restart, and the loading skeleton were all checked
+
+The iPhone run found one fix, which went in before the release: tab switches
+slid like a push on iOS (#23).
+
+**Review when:** there is a paid Apple Developer account. TestFlight would give
+iOS a download link like the other two platforms, and the same ID would let the
+DMG be signed.
