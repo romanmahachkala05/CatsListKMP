@@ -1,5 +1,10 @@
 package com.example.catslist.presentation.navigation
 
+import androidx.compose.animation.ContentTransform
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -48,6 +53,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
+import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberDecoratedNavEntries
@@ -154,7 +160,7 @@ private fun CatsScaffold(
         )
 
         Box(modifier = Modifier.fillMaxSize()) {
-            NavDisplay(
+            TabDisplay(
                 entries = if (selected == CatsListNavKey) catsListEntries else favoriteCatsEntries,
                 onBack = {
                     val backStack = if (selected == CatsListNavKey) catsListBackStack else favoriteCatsBackStack
@@ -257,6 +263,26 @@ private fun FloatingNavRail(
         }
     }
 }
+
+/**
+ * Each tab's stack holds one screen, so every change this animates is a tab switch, not a push.
+ * It crossfades as Android and desktop do by default, stated so iOS does too: its default is a
+ * push's slide from the right.
+ */
+@Composable
+private fun TabDisplay(entries: List<NavEntry<NavKey>>, onBack: () -> Unit) {
+    NavDisplay(
+        entries = entries,
+        onBack = onBack,
+        transitionSpec = { tabSwitch() },
+        popTransitionSpec = { tabSwitch() },
+    )
+}
+
+private fun tabSwitch(): ContentTransform =
+    fadeIn(tween(TAB_SWITCH_MILLIS)) togetherWith fadeOut(tween(TAB_SWITCH_MILLIS))
+
+private const val TAB_SWITCH_MILLIS = 700
 
 private val BAR_SHAPE = RoundedCornerShape(50)
 
