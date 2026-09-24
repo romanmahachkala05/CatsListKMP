@@ -40,6 +40,16 @@ kotlin {
             implementation(libs.kotlinx.serialization.json)
         }
 
+        // startCatsApp() builds Coil's singleton loader for iOS, as `App` and `main()` do
+        // on the other two platforms.
+        iosMain.dependencies {
+            implementation(project.dependencies.platform(libs.coil.bom))
+            implementation(libs.coil)
+            implementation(libs.coil.core)
+            implementation(libs.coil.network.ktor3)
+            implementation(libs.ktor.client.core)
+        }
+
         jvmTest.dependencies {
             implementation(project(":core:testing"))
             implementation(libs.junit)

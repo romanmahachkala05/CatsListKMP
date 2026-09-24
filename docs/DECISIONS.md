@@ -66,6 +66,7 @@ that fail without the fix. They are here because finding them was the work.
 | [0037](#adr-0037) | The UI moves to Compose Multiplatform, one module at a time | Accepted |
 | [0038](#adr-0038) | Adaptive layout: one grid rule, one width breakpoint | Accepted |
 | [0039](#adr-0039) | iOS targets for every multiplatform module | Accepted |
+| [0040](#adr-0040) | The iOS app: a thin Xcode project around `CatsApp()` | Accepted |
 
 ---
 
@@ -2027,3 +2028,84 @@ iOS, Coil's network fetcher and the Photos prompt are the next step.
 
 **Review when:** Kotlin moves to 2.4. Coil can then return to its current
 release, and the Skiko mismatch goes with it.
+
+---
+
+## ADR-0040
+
+### The iOS app: a thin Xcode project around `CatsApp()`
+
+**Accepted** · 2026-09-24
+
+**Context.** [ADR-0039](#adr-0039) left a `Shared` framework that links and
+tests that pass on a simulator, with nothing that a person could open. iOS
+needs an Xcode project to be an app at all. The goal for all three platforms
+is the same: a launcher and nothing else, with every screen in `commonMain`.
+
+**Decision.** `iosApp/` is that launcher.
+
+- **Swift does as little as it can.** `iOSApp.swift` calls `startCatsApp()` once,
+  and `ContentView` hosts `MainViewController()` edge to edge, since Compose
+  reads the safe area itself. The rest of the startup lives in Kotlin
+  (`:shared`'s `iosMain`), in the same shape as Android's `App` and desktop's
+  `main()`:
+  - Koin starts with `appModules`.
+  - Coil's singleton loader fetches over Ktor, using a client of its own on the
+    graph's one URLSession engine. That is iOS's form of
+    [ADR-0030](#adr-0030)'s shared client. The API's own client is not reused,
+    because it resolves paths against TheCatAPI and throws on any non-2xx
+    response.
+- **Gradle builds the framework from inside Xcode.** A build phase runs
+  `:shared:embedAndSignAppleFrameworkForXcode`, which also copies the Compose
+  resources into the app. It calls `bash ./gradlew`, because the wrapper is
+  committed without its executable bit.
+- **The project is written by hand, and small.** It uses Xcode 16+'s
+  synchronized folders, so adding a Swift file does not touch
+  `project.pbxproj`. There is one target, one shared scheme and one
+  `Config.xcconfig`.
+- **Signing stays out of git.** The Team ID lives in a git-ignored
+  `Config.local.xcconfig`, optionally included by the committed config. The
+  bundle ID is suffixed with the team, because a bundle ID belongs to the first
+  team that registers it, and a free Apple ID cannot take one someone else
+  already holds.
+- **The version is the same one as everywhere else.** A last build phase stamps
+  `catslist.version` from `gradle.properties` into the built `Info.plist`
+  before signing, so iOS adds no second number to keep in step
+  ([ADR-0021](#adr-0021)).
+- **The icon** is the macOS icon with its transparent corners filled in the
+  launcher background (`#6650A4`). iOS wants a full-bleed opaque square and
+  applies its own mask.
+- **`Info.plist`:**
+  - `NSPhotoLibraryAddUsageDescription`, the text of ADR-0039's add-only
+    Photos prompt.
+  - `CADisableMinimumFrameDurationOnPhone`, so Compose can draw at 120 Hz on
+    ProMotion screens.
+  - Every orientation except upside-down on iPhone, since
+    [ADR-0038](#adr-0038)'s grid is built for landscape too.
+
+**Consequences.**
+
+- **Where it has run.** Built, installed and launched on the simulator and on an
+  iPhone 11 running iOS 27.0, from Xcode 26.0.1. On the phone the feed loads
+  and its images decode, which answers ADR-0039's open question about Coil and
+  Skiko.
+- **CI builds the app too.** The `ios` job adds an unsigned `xcodebuild` for the
+  simulator, so a broken project or Swift file fails a pull request. Signing is
+  the one step CI cannot check, because a runner has no Apple ID. Simulator
+  builds exclude `x86_64`, because there is no `iosX64` target (ADR-0039). A
+  generic simulator destination builds for Intel as well, and failed on exactly
+  that in the first CI run.
+- **Deployment target: iOS 16.** The linker warns that Compose's bundled ICU data
+  is marked for 18.5. It is a data object with no code in it.
+- **Two network failures seen while testing were the network, not the app:**
+  - On this Mac, the simulator could not resolve TheCatAPI through a VPN that
+    answers DNS with fake `198.18.x` addresses.
+  - On the phone, the first request timed out on a direct connection.
+
+  Both were classified as ADR-0032 intends: the first as `Unreachable` (the
+  path was satisfied and the host was not found), the second as `Timeout`.
+
+**Alternatives rejected.** XcodeGen or Tuist, which generate the project from a
+spec. For one target that no one edits often, that is one more tool to install
+on every Mac and in CI, and synchronized folders already keep the hand-written
+file from churning.
