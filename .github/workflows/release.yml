@@ -110,9 +110,11 @@ jobs:
           merge-multiple: true
 
       # A draft: the notes and the files get a human look before anyone can download them.
+      # find, not artifacts/*: the desktop artifact keeps its msi/, dmg/ and deb/ subfolders,
+      # and a folder handed to gh release create fails the upload (v3.0.0).
       - name: Draft the GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
         run: >
-          gh release create "$GITHUB_REF_NAME" artifacts/*
+          gh release create "$GITHUB_REF_NAME" $(find artifacts -type f)
           --repo "$GITHUB_REPOSITORY" --draft --generate-notes --title "CatsList $GITHUB_REF_NAME"
