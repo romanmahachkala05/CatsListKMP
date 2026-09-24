@@ -19,7 +19,7 @@ module by module, to Kotlin Multiplatform.
 | **Android** | <img src="docs/images/cats-list.png" width="220" alt="Cats list on Android"/> | <img src="docs/images/favorites.png" width="220" alt="Favorites on Android"/> | <img src="docs/images/error-retry.png" width="220" alt="Error state with retry on Android"/><br>Failure and recovery |
 | **iOS** | <img src="docs/images/ios-cats-list.jpg" width="220" alt="Cats list on iOS"/> | <img src="docs/images/ios-favorites.jpg" width="220" alt="Favorites on iOS"/> | <img src="docs/images/ios-loading.jpg" width="220" alt="Loading skeleton on iOS"/><br>Loading |
 
-<!-- DESKTOP_SCREENSHOT -->
+<img src="docs/images/desktop.png" width="720" alt="Cats list on desktop, with the navigation rail and a three-column grid"/>
 
 ## Get it
 
