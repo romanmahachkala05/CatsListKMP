@@ -2091,7 +2091,10 @@ is the same: a launcher and nothing else, with every screen in `commonMain`.
   Skiko.
 - **CI builds the app too.** The `ios` job adds an unsigned `xcodebuild` for the
   simulator, so a broken project or Swift file fails a pull request. Signing is
-  the one step CI cannot check, because a runner has no Apple ID.
+  the one step CI cannot check, because a runner has no Apple ID. Simulator
+  builds exclude `x86_64`, because there is no `iosX64` target (ADR-0039). A
+  generic simulator destination builds for Intel as well, and failed on exactly
+  that in the first CI run.
 - **Deployment target: iOS 16.** The linker warns that Compose's bundled ICU data
   is marked for 18.5. It is a data object with no code in it.
 - **Two network failures seen while testing were the network, not the app:**
