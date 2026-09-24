@@ -24,22 +24,24 @@ kotlin {
             implementation(libs.ktor.client.core)
             implementation(libs.ktor.client.content.negotiation)
             implementation(libs.ktor.serialization.kotlinx.json)
-            // Not Ktor's engine dependency — the OkHttpClient the engine and Coil share
-            // (ADR-0030). `jvm()`/`androidTarget()` both resolve it; see CatOkHttpClient.kt.
-            implementation(libs.okhttp)
 
             implementation(libs.androidx.room.runtime)
             implementation(libs.androidx.sqlite.bundled)
         }
 
-        androidMain.dependencies {
-            implementation(libs.androidx.core.ktx)
-            // OkHttp on both platforms; only its construction is per-platform.
+        // OkHttp is JVM-only, so the client the engine and Coil share (ADR-0030) is built
+        // here rather than in commonMain; iOS drives URLSession through the Darwin engine.
+        named("jvmAndAndroidMain").dependencies {
+            implementation(libs.okhttp)
             implementation(libs.ktor.client.okhttp)
         }
 
-        jvmMain.dependencies {
-            implementation(libs.ktor.client.okhttp)
+        androidMain.dependencies {
+            implementation(libs.androidx.core.ktx)
+        }
+
+        iosMain.dependencies {
+            implementation(libs.ktor.client.darwin)
         }
 
         commonTest.dependencies {
@@ -60,6 +62,12 @@ kotlin {
             implementation(libs.junit)
             implementation(libs.truth)
             implementation(libs.androidx.paging.testing)
+        }
+
+        // The real database and ErrorMapper on iOS, the way jvmTest checks them on desktop.
+        iosTest.dependencies {
+            implementation(project(":core:testing"))
+            implementation(libs.kotlin.test)
         }
 
         androidDeviceTest.dependencies {
@@ -83,4 +91,6 @@ dependencies {
     // Room's processor runs once per target that compiles the database.
     add("kspAndroid", libs.androidx.room.compiler)
     add("kspJvm", libs.androidx.room.compiler)
+    add("kspIosArm64", libs.androidx.room.compiler)
+    add("kspIosSimulatorArm64", libs.androidx.room.compiler)
 }

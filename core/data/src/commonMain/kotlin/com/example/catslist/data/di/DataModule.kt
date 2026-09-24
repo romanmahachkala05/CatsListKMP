@@ -21,7 +21,7 @@ val IoDispatcher = named("io")
 
 /**
  * What a platform has to answer for: where the database file lives, which HTTP engine to
- * drive (and the [okhttp3.OkHttpClient] it and Coil share, on the platforms that have one),
+ * drive (and the `OkHttpClient` it and Coil share, on the platforms that have one),
  * how to download an image, and how [com.example.catslist.domain.NetworkMonitor] is
  * implemented. Everything else in this module is the same everywhere.
  */

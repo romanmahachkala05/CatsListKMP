@@ -14,6 +14,15 @@ kotlin {
         namespace = "com.example.catslist.shared"
     }
 
+    // The framework the iOS app links: everything below `CatsApp()`, as one `Shared` module to
+    // Swift. Static, so the app carries no separate dynamic library to embed and sign.
+    listOf(iosArm64(), iosSimulatorArm64()).forEach { target ->
+        target.binaries.framework {
+            baseName = "Shared"
+            isStatic = true
+        }
+    }
+
     sourceSets {
         commonMain.dependencies {
             // `api`: the apps start Koin with [appModules], whose elements are these modules'.

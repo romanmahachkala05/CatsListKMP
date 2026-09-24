@@ -3,24 +3,21 @@ package com.example.catslist.data.error
 import androidx.sqlite.SQLiteException
 import com.example.catslist.domain.NetworkMonitor
 import com.example.catslist.domain.model.AppError
+import io.ktor.client.network.sockets.SocketTimeoutException
 import io.ktor.client.plugins.ClientRequestException
 import io.ktor.client.plugins.ServerResponseException
-import java.io.IOException
-import java.net.SocketTimeoutException
-import java.net.UnknownHostException
 import kotlinx.coroutines.flow.first
+import kotlinx.io.IOException
 import kotlinx.serialization.SerializationException
 
 /**
  * Turns whatever was thrown into an [AppError]. The only place in the app that knows what a
  * `SocketTimeoutException` or an HTTP 429 means (ADR-0028).
  *
- * `java.net`/`java.io` rather than a multiplatform-neutral equivalent: Ktor does not unify the
- * *connection-level* failures (timed out vs. DNS failure vs. refused) across engines the way it
- * does HTTP-status failures, so there is no common type to catch instead. This module targets
- * only `jvm()` and `androidTarget()` today (ADR-0029), both of which have these types — the
- * deviation from the rest of `commonMain` is scoped to exactly the three catches that need it,
- * and is worth revisiting only once a non-JVM target is real (ADR-0030).
+ * Both types are the multiplatform ones, and on the JVM they are `java.net`'s and `java.io`'s
+ * under another name. OkHttp and URLSession each report a timeout as that
+ * `SocketTimeoutException`; every other failure to reach the server is an `IOException` —
+ * an unknown host, a refused connection, or on iOS a `DarwinHttpRequestException`.
  */
 class ErrorMapper(
     private val networkMonitor: NetworkMonitor,
@@ -36,11 +33,10 @@ class ErrorMapper(
             is ClientRequestException -> error.response.status.value.toAppError()
             is ServerResponseException -> error.response.status.value.toAppError()
             is SocketTimeoutException -> AppError.Timeout
-            is UnknownHostException -> transportFailure()
             is SerializationException -> AppError.Malformed
             is SQLiteException -> AppError.Storage
-            // After the specific ones: SocketTimeoutException and UnknownHostException are
-            // both IOException, and a `when` takes the first branch that matches.
+            // After the timeout: SocketTimeoutException is an IOException too, and a `when`
+            // takes the first branch that matches.
             is IOException -> transportFailure()
             else -> AppError.Unknown
         }

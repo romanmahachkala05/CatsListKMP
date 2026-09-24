@@ -11,6 +11,12 @@ import kotlinx.serialization.json.Json
 internal const val CAT_API_BASE_URL = "https://api.thecatapi.com/"
 
 /**
+ * Past this, a request is reported as a timeout rather than left hanging behind a spinner. Set
+ * on each platform's engine, since that is where OkHttp and URLSession each keep theirs.
+ */
+internal const val REQUEST_TIMEOUT_SECONDS = 15L
+
+/**
  * kotlinx.serialization rejects unknown keys by default, so a field added upstream would
  * start failing every response. Tolerating them is the safe default for a wire model we
  * do not own.

@@ -54,7 +54,7 @@ that fail without the fix. They are here because finding them was the work.
 | [0025](#adr-0025) | Page the feed from the network; persist only favorites | Accepted |
 | [0026](#adr-0026) | Koin for dependency injection | Accepted |
 | [0027](#adr-0027) | Ktor for HTTP, replacing Retrofit | Accepted |
-| [0028](#adr-0028) | Migrate to KMP module by module, from the bottom | Accepted |
+| [0028](#adr-0028) | Migrate to KMP module by module, from the bottom | Accepted, **amended** by 0039 |
 | [0029](#adr-0029) | `:core:data` on Room KMP, with a real desktop target | Accepted |
 | [0030](#adr-0030) | One shared, configured `OkHttpClient` | Accepted |
 | [0031](#adr-0031) | Connectivity as a `Flow`, not a pre-flight check | Accepted |
@@ -65,6 +65,7 @@ that fail without the fix. They are here because finding them was the work.
 | [0036](#adr-0036) | Porting v2.3.0 from the Android app: what changed on the way in | Accepted |
 | [0037](#adr-0037) | The UI moves to Compose Multiplatform, one module at a time | Accepted |
 | [0038](#adr-0038) | Adaptive layout: one grid rule, one width breakpoint | Accepted |
+| [0039](#adr-0039) | iOS targets for every multiplatform module | Accepted |
 
 ---
 
@@ -1932,3 +1933,97 @@ small tablet — right without listing them.
 **Review when:** a screen needs a layout that is not a list of cats — a detail
 pane beside the grid would be the case for `material3-adaptive`'s list-detail
 scaffolds.
+
+---
+
+## ADR-0039
+
+### iOS targets for every multiplatform module
+
+**Accepted** · 2026-09-24 · amends [ADR-0028](#adr-0028)'s "Targets: `jvm()` only"
+
+**Context.** ADR-0028 declared only `jvm()` beside Android, because a target that
+is configured but never built is a claim the build cannot back up, and iOS needs
+a macOS machine to build at all. That machine is now here, and CI has a macOS
+runner. Two pieces of `:core:data`'s `commonMain` only compiled because every
+target was a JVM (ADR-0036 names both): `ErrorMapper` caught `java.net`/`java.io`
+exceptions, and the shared `OkHttpClient` was built in common code.
+
+**Decision.** `catslist.kmp.library` and `catslist.kmp.android.library` declare
+`iosArm64()` and `iosSimulatorArm64()`, for a device and the simulator on Apple
+silicon. There is no `iosX64`, since nothing here builds on an Intel Mac. On a
+host that cannot build iOS, Kotlin skips those targets and the rest builds as
+before. `:desktopApp` stays `jvm()` only and applies the multiplatform plugin
+directly, since an application for the desktop has nothing to compile for iOS.
+
+The two JVM-isms went first:
+
+- **`ErrorMapper` catches Ktor's multiplatform types:**
+  `io.ktor.client.network.sockets.SocketTimeoutException` and
+  `kotlinx.io.IOException`. On the JVM both are typealiases for the `java.net`
+  and `java.io` classes it caught before, so Android and desktop classify
+  exactly as they did, and `ErrorMapperTest` passes unchanged. The Darwin engine
+  throws the same `SocketTimeoutException` for `NSURLErrorTimedOut` and a
+  `DarwinHttpRequestException`, which is an `IOException`, for everything else.
+  The separate `UnknownHostException` branch is gone, because it produced the
+  same result as the `IOException` branch below it.
+- **OkHttp lives in a `jvmAndAndroid` source set**, now declared by the
+  convention plugin for every Android-and-multiplatform module rather than by
+  `:core:testing` alone. The 15-second cap is a common constant that each
+  platform applies to its own engine: OkHttp's `callTimeout`, and URLSession's
+  request and resource timeouts.
+
+iOS then answers the same questions every platform does in `platformDataModule`:
+
+- **Database:** Room's KSP processor runs for both iOS targets, over the same
+  bundled SQLite. The file lives in Application Support, where iOS keeps data an
+  app owns and a user never browses.
+- **Network:** `IosNetworkMonitor` reads `NWPathMonitor`. A *satisfied* path is
+  the closest iOS has to Android's `NET_CAPABILITY_VALIDATED`, but unlike Android
+  it does not see past a captive portal.
+- **Downloads:** `IosImageDownloader` saves to Photos with *add-only* access. The
+  app can add a cat to the library but never read what is already there. The
+  system asks on the first download, using the app's
+  `NSPhotoLibraryAddUsageDescription` text. A refusal throws, and the screen
+  reports it like any other failed download.
+- **Theme and logging:** there is no dynamic color, and nothing to set on the
+  status bar, whose default style already follows the system's light or dark
+  mode, as the theme does. Logging goes to standard output, which Xcode's
+  console shows. It does not go to `NSLog`: a Kotlin `String` passed through
+  `NSLog`'s C varargs is not bridged to an `NSString`, and `NSLog` crashed
+  formatting it. `ErrorMapperIosTest` found that on its first run. In the app it
+  would have crashed on the first error it logged.
+
+`:shared` builds a static `Shared` framework. It exposes `MainViewController()`,
+which wraps `CatsApp()` in a `UIViewController` for Swift to host.
+
+**Consequences.**
+
+- **Coil is held at 3.4.0.** From 3.5.0, Coil's iOS klibs are built by Kotlin
+  2.4, and Kotlin 2.3.21's native compiler refuses a newer klib ABI outright. The
+  JVM tolerates newer metadata, which is why Android and desktop never showed it.
+  Every other iOS dependency is built by Kotlin 2.3 or older.
+- **Coil and Compose use different Skiko versions.** Coil 3.4.0 was built against
+  Skiko 0.9.22.2, and Compose Multiplatform 1.12.1 brings 0.150.1. The framework
+  links with no partial-linkage warnings, so every Skiko call Coil makes
+  resolved. Whether images actually decode on iOS is for the app to show.
+- **One type inference differed on native.** `listOf(CatsListNavKey,
+  FavoriteCatsNavKey)` was `List<NavKey>` on the JVM and `List<Any>` on native,
+  so the type is now written out.
+- **On a Mac, `./gradlew verify` builds and tests iOS too,** through each
+  module's `check`. The CI `ios` job runs the iOS tests on a simulator, compiles
+  the device target and links the framework.
+- **Two test classes run on iOS:**
+  - `CatDatabaseIosTest` covers the real database, as `CatDatabaseJvmTest` does
+    on desktop.
+  - `ErrorMapperIosTest` covers the failures only URLSession produces.
+
+  The rest of the suite uses JUnit and Truth, so it runs on the JVM targets
+  only. Moving it to `commonTest` is listed under "After 3.0.0" in the roadmap.
+
+**What this does *not* claim.** Nothing here has run as an app. The framework
+links, and the iOS tests pass on a simulator. The Xcode project, Koin startup on
+iOS, Coil's network fetcher and the Photos prompt are the next step.
+
+**Review when:** Kotlin moves to 2.4. Coil can then return to its current
+release, and the Skiko mismatch goes with it.
