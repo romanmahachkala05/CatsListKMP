@@ -44,15 +44,15 @@ none of the ceremony. Split when a real trigger shows up — see ADR-0001's
 Module graph (arrows = "depends on"):
 
     :app, :desktopApp  ──▶ :shared                           (:desktopApp: jvm only)
-    :shared  ──▶ :feature:feed, :feature:favorites          (multiplatform: common + android + jvm)
+    :shared  ──▶ :feature:feed, :feature:favorites          (multiplatform: common + android + jvm + ios)
       │          └──▶ :core:domain, :core:ui, :core:designsystem
       └──▶ :core:data, :core:ui, :core:designsystem
 
-    :core:data          ──▶ :core:model, :core:domain      (multiplatform: common + android + jvm)
-    :core:domain        ──▶ :core:model                    (multiplatform: common + jvm)
-    :core:model         ──▶ (nothing)                      (multiplatform: common + jvm)
-    :core:ui            ──▶ :core:domain                    (multiplatform: common + android + jvm)
-    :core:designsystem  ──▶ :core:model, :core:ui          (multiplatform: common + android + jvm)
+    :core:data          ──▶ :core:model, :core:domain      (multiplatform: common + android + jvm + ios)
+    :core:domain        ──▶ :core:model                    (multiplatform: common + jvm + ios)
+    :core:model         ──▶ (nothing)                      (multiplatform: common + jvm + ios)
+    :core:ui            ──▶ :core:domain                    (multiplatform: common + android + jvm + ios)
+    :core:designsystem  ──▶ :core:model, :core:ui          (multiplatform: common + android + jvm + ios)
     :core:testing       ──▶ :core:model, :core:data, :core:ui  (multiplatform; test-only, nothing depends on it in `main`)
 
 Every module but `:app` is Kotlin Multiplatform, and `:app` is only the Android
@@ -60,9 +60,11 @@ entry point. The UI moved to Compose Multiplatform one module at a time,
 bottom-up (ADR-0037). See ADR-0028 for the migration order and ADR-0029 for what
 `:core:data`'s split looks like.
 
-Source sets in a multiplatform module are `commonMain` plus `androidMain`/`jvmMain`,
-and its tests are `commonTest`, `androidHostTest` (JVM, no device), `androidDeviceTest`
-(instrumented) and `jvmTest` — AGP's multiplatform plugin names them, not us.
+Source sets in a multiplatform module are `commonMain` plus `androidMain`/`jvmMain`/`iosMain`,
+with `jvmAndAndroidMain` for what only the two JVM-based targets share (OkHttp, JUnit rules).
+Its tests are `commonTest`, `androidHostTest` (JVM, no device), `androidDeviceTest`
+(instrumented), `jvmTest` and `iosTest` (on a simulator, Mac only) — AGP's multiplatform
+plugin and Kotlin's default hierarchy name them, not us (ADR-0039).
 
 Rules:
 

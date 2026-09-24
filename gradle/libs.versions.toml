@@ -13,7 +13,10 @@ ktor = "3.6.0"
 # (ADR-0030, which replaces ADR-0026's Retrofit+Coil sharing now that Ktor has replaced
 # Retrofit — ADR-0027).
 okhttp = "5.5.0"
-coilBom = "3.6.3"
+# Held at 3.4.0, the last release built with Kotlin 2.3: from 3.5.0 its iOS klibs are Kotlin
+# 2.4's ABI, which this Kotlin cannot read (the JVM tolerates the newer metadata; native does not).
+# Review when: Kotlin moves to 2.4.
+coilBom = "3.4.0"
 kotlinxCollectionsImmutable = "0.5.2"
 kotlinxSerialization = "1.11.0"
 navigation3 = "1.1.7"
@@ -69,6 +72,8 @@ okhttp = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttp" }
 # non-deprecated `platform()`, and the catalog already pins one version in one place.
 ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
 ktor-client-okhttp = { module = "io.ktor:ktor-client-okhttp", version.ref = "ktor" }
+# iOS's engine: URLSession. OkHttp is JVM-only.
+ktor-client-darwin = { module = "io.ktor:ktor-client-darwin", version.ref = "ktor" }
 ktor-client-content-negotiation = { module = "io.ktor:ktor-client-content-negotiation", version.ref = "ktor" }
 ktor-serialization-kotlinx-json = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktor" }
 ktor-client-mock = { module = "io.ktor:ktor-client-mock", version.ref = "ktor" }
@@ -121,6 +126,8 @@ androidx-navigation3-runtime = { module = "androidx.navigation3:navigation3-runt
 navigation3-ui = { module = "org.jetbrains.androidx.navigation3:navigation3-ui", version.ref = "navigation3Ui" }
 lifecycle-viewmodel-navigation3 = { module = "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-navigation3", version.ref = "lifecycleViewmodelNavigation3" }
 junit = { module = "junit:junit", version.ref = "junit" }
+# Assertions for the iOS tests, where neither JUnit nor Truth exists.
+kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 androidx-junit = { module = "androidx.test.ext:junit", version.ref = "androidxJunit" }
 androidx-espresso-core = { module = "androidx.test.espresso:espresso-core", version.ref = "espressoCore" }
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }

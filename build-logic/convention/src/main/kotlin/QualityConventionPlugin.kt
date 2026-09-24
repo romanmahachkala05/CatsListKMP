@@ -46,7 +46,8 @@ class QualityConventionPlugin : Plugin<Project> {
                         "src/main", "src/test", "src/androidTest",
                         "src/commonMain", "src/commonTest",
                         "src/androidMain", "src/androidHostTest", "src/androidDeviceTest",
-                        "src/jvmMain", "src/jvmTest",
+                        "src/jvmMain", "src/jvmTest", "src/jvmAndAndroidMain",
+                        "src/iosMain", "src/iosTest",
                     ).map { project.file(it) }.filter { it.exists() },
                 )
             }

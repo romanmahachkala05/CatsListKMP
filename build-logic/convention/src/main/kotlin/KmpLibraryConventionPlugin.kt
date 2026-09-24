@@ -1,16 +1,14 @@
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.kotlin.dsl.configure
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 
 /**
  * For modules that compile for more than one platform. Replaces `catslist.jvm.library` as
  * modules move to `commonMain`.
  *
- * Only `jvm()` is declared — that is the desktop target, and it is the one non-Android
- * platform this build can actually compile and test on any host. iOS targets need a macOS
- * machine, so they are not declared here rather than being declared and never built.
+ * `jvm()` is the desktop target; the iOS pair is in [iosTargets]. On a host that cannot build
+ * iOS (anything but macOS) Kotlin skips those targets and the rest builds as usual.
  */
 class KmpLibraryConventionPlugin : Plugin<Project> {
     override fun apply(target: Project) {
@@ -22,6 +20,7 @@ class KmpLibraryConventionPlugin : Plugin<Project> {
 
             extensions.configure<KotlinMultiplatformExtension> {
                 jvm()
+                iosTargets()
 
                 compilerOptions {
                     // An Android consumer resolves the `jvm` variant of these modules, so the

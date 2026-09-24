@@ -1,13 +1,19 @@
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 
 plugins {
-    id("catslist.kmp.library")
+    // Not `catslist.kmp.library`: that one brings the iOS targets, and an app for the desktop
+    // has nothing to compile for them.
+    alias(libs.plugins.kotlin.multiplatform)
+    id("catslist.quality")
     id("catslist.kmp.compose")
     id("catslist.koin")
 }
 
 /** The desktop entry point: a window around `CatsApp()`, and Koin and Coil started for it. */
 kotlin {
+    jvm()
+    jvmToolchain(17)
+
     sourceSets {
         jvmMain.dependencies {
             implementation(project(":shared"))

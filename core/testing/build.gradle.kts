@@ -1,22 +1,8 @@
-import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
-import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
-
 plugins {
     id("catslist.kmp.android.library")
 }
 
 kotlin {
-    // The default hierarchy plus one group: code shared by the two JVM-based targets.
-    @OptIn(ExperimentalKotlinGradlePluginApi::class)
-    applyDefaultHierarchyTemplate {
-        common {
-            group("jvmAndAndroid") {
-                withJvm()
-                withCompilations { it.platformType == KotlinPlatformType.androidJvm }
-            }
-        }
-    }
-
     android {
         namespace = "com.example.catslist.core.testing"
     }
@@ -37,7 +23,8 @@ kotlin {
 
         // MainDispatcherRule is a JUnit 4 rule, and JUnit exists only on the JVM. The fakes
         // above are plain Kotlin and stay common; the rule lives in a source set the JVM and
-        // Android targets share, so an iOS target can join later without inheriting JUnit.
+        // Android targets share (`catslist.kmp.android.library` declares it), so iOS does not
+        // inherit JUnit.
         named("jvmAndAndroidMain").dependencies {
             api(libs.junit)
         }

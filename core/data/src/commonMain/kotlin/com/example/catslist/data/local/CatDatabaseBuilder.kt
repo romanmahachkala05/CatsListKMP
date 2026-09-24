@@ -3,6 +3,7 @@ package com.example.catslist.data.local
 import androidx.room.RoomDatabase
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
 
 /** The production name. A test passes its own so it doesn't touch the real database. */
 const val CAT_DATABASE_NAME = "cats_database"

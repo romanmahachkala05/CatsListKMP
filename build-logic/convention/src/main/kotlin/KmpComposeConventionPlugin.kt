@@ -7,8 +7,8 @@ import org.jetbrains.compose.resources.ResourcesExtension
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 
 /**
- * Additive: applied alongside `catslist.kmp.android.library` (or, for the desktop app,
- * `catslist.kmp.library`) by modules that render Compose UI. The multiplatform counterpart of `catslist.compose`, which stays for
+ * Additive: applied alongside `catslist.kmp.android.library` (or, for the desktop app, a bare
+ * `jvm()` target) by modules that render Compose UI. The multiplatform counterpart of `catslist.compose`, which stays for
  * the Android-only modules until each one moves.
  *
  * Strings and drawables live in `src/commonMain/composeResources/` and are read through a
@@ -48,8 +48,9 @@ class KmpComposeConventionPlugin : Plugin<Project> {
                 // JVM does not: Skia's native library for the machine running them — even
                 // reading a string asks it for the system theme — and a `Dispatchers.Main`,
                 // which Paging's Compose collector runs on. Without either, a test fails to
-                // initialise rather than failing an assertion.
-                sourceSets.named("jvmTest").configure {
+                // initialise rather than failing an assertion. Matched lazily: `:desktopApp`
+                // declares its `jvm()` target after this plugin is applied.
+                sourceSets.matching { it.name == "jvmTest" }.configureEach {
                     dependencies {
                         implementation(library("compose-mp-ui-test"))
                         implementation(ComposePlugin.DesktopDependencies.currentOs)

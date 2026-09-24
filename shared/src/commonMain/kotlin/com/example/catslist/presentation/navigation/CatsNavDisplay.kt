@@ -272,7 +272,7 @@ internal const val NAV_BAR_TAG = "navBar"
 internal const val NAV_RAIL_TAG = "navRail"
 
 /** The bottom bar's destinations, in bar order. */
-private val TOP_LEVEL_KEYS = listOf(CatsListNavKey, FavoriteCatsNavKey)
+private val TOP_LEVEL_KEYS = listOf<NavKey>(CatsListNavKey, FavoriteCatsNavKey)
 
 /** Saves the selected tab as its position in [TOP_LEVEL_KEYS] — an Int every platform can save. */
 private val TopLevelSaver = Saver<NavKey, Int>(

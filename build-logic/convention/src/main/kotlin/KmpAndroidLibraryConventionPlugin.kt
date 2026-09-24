@@ -13,8 +13,7 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
  * apply the latter alongside the multiplatform plugin. That plugin names its source sets
  * `androidMain`, `androidHostTest` and `androidDeviceTest` — not `main`/`test`/`androidTest`.
  *
- * As in `catslist.kmp.library`, only `jvm()` joins the Android target: iOS needs a macOS host
- * to build, so it is left undeclared rather than declared and never compiled.
+ * The same `jvm()` and iOS targets as `catslist.kmp.library` join the Android one.
  */
 class KmpAndroidLibraryConventionPlugin : Plugin<Project> {
     override fun apply(target: Project) {
@@ -27,6 +26,8 @@ class KmpAndroidLibraryConventionPlugin : Plugin<Project> {
 
             extensions.configure<KotlinMultiplatformExtension> {
                 jvm()
+                iosTargets()
+                jvmAndAndroidHierarchy()
                 jvmToolchain(17)
 
                 extensions.getByName<KotlinMultiplatformAndroidLibraryTarget>("android").apply {

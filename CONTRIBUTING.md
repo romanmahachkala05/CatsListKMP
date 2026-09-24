@@ -25,6 +25,10 @@ Two gates, both real tasks in the root `build.gradle.kts`:
   animate, each `:feature:*` for its screen — computed the same way, no
   hardcoded module list).
 
+On a Mac, each module's `check` also builds its iOS targets and runs `iosSimulatorArm64Test`
+on a simulator (ADR-0039); elsewhere Kotlin skips the iOS targets and the rest builds as usual.
+CI's separate `ios` job, on a macOS runner, is what catches an iOS break made on another OS.
+
 CI runs `verify` on every pull request. The local command is deliberately the
 same one, so a red check can be reproduced without translating a CI step back
 into Gradle tasks.
@@ -91,7 +95,9 @@ for the full dependency graph and the rules behind it.
 | Domain model | `:core:model` | `src/commonMain/kotlin/…/domain/model/` |
 | Use cases, `CatRepository`, `ImageDownloader` | `:core:domain` | `src/commonMain/kotlin/…/domain/` |
 | Repository impl, API service, Room entity/DAO/migrations, DI modules | `:core:data` | `src/commonMain/kotlin/…/data/` |
-| Platform splits (database path, HTTP engine, image download) | `:core:data` | `src/androidMain/`, `src/jvmMain/` |
+| Platform splits (database path, HTTP engine, image download, network monitor) | `:core:data` | `src/androidMain/`, `src/jvmMain/`, `src/iosMain/`; the OkHttp client both JVM targets share in `src/jvmAndAndroidMain/` |
+| iOS tests (the real database, Darwin failures) — Mac only | `:core:data` | `src/iosTest/kotlin/` |
+| `MainViewController()` — what the iOS app hosts | `:shared` | `src/iosMain/kotlin/…/` |
 | Committed Room schemas | `:core:data` | `schemas/` |
 | ViewModel-facing shared primitives: `UiText`, `launchCatching`, `RetryableFlow`, `StateOwner`, `SnackbarNotifier` | `:core:ui` | `src/commonMain/kotlin/…/presentation/`, strings in `src/commonMain/composeResources/` |
 | Theme, shared components (e.g. the cat image card) | `:core:designsystem` | `src/commonMain/kotlin/…/presentation/theme/`, `…/components/`; icons and strings in `src/commonMain/composeResources/` |
