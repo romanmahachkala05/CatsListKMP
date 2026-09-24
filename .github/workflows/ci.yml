@@ -1,12 +1,14 @@
 name: CI
 
 on:
+  # Every pull request, whatever it targets. Filtering by base branch reads as an
+  # economy and behaves as a hole: a stacked PR — one based on the branch below it
+  # rather than on dev — matched nothing and ran no checks at all (ADR-0034).
   pull_request:
-    branches: [dev, master]
-  # dev itself is verified too, so a bad merge is caught even when every PR into
-  # it was green on its own base.
+  # dev and main themselves are verified too, so a bad merge is caught even when
+  # every PR into them was green on its own base.
   push:
-    branches: [dev]
+    branches: [dev, main]
 
 # A new push supersedes the run it interrupted; nothing is learned from finishing
 # the old one.
@@ -42,7 +44,8 @@ jobs:
       # so a red check here can be reproduced without translating YAML back
       # into Gradle tasks. See docs/DECISIONS.md ADR-0018.
       - name: Verify
-        run: ./gradlew verify
+        # --stacktrace: a worker failure otherwise reports only the task name, with no cause.
+        run: ./gradlew verify --stacktrace
 
       - name: Upload test reports
         if: failure()
@@ -52,4 +55,52 @@ jobs:
           path: |
             app/build/reports/tests/
             app/build/test-results/
+          retention-days: 7
+
+  # Kotlin/Native compiles for iOS only on macOS, so the Linux job above skips those targets.
+  # This one builds them and runs their tests on a simulator: the only check of iOS between
+  # sessions on the Mac.
+  ios:
+    name: ios
+    runs-on: macos-latest
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v6
+
+      # The Kotlin/Native toolchain and its LLVM, about a gigabyte fetched on first use.
+      - uses: actions/cache@v5
+        with:
+          path: ~/.konan
+          key: konan-${{ runner.os }}-${{ hashFiles('gradle/libs.versions.toml') }}
+
+      - name: Make the Gradle wrapper executable
+        run: chmod +x gradlew
+
+      # Every module's tests on the simulator, the device target compiled, and the framework
+      # the iOS app links.
+      - name: Build and test for iOS
+        run: ./gradlew iosSimulatorArm64Test compileKotlinIosArm64 :shared:linkDebugFrameworkIosSimulatorArm64 --stacktrace
+
+      # The app itself, as Xcode builds it: the project, its Swift and the Gradle build phase.
+      # Unsigned, since a runner has no Apple ID; signing is the one step left to a real device.
+      - name: Build the iOS app
+        run: >-
+          xcodebuild -project iosApp/iosApp.xcodeproj -scheme iosApp -configuration Debug
+          -destination 'generic/platform=iOS Simulator' -derivedDataPath build/ios
+          CODE_SIGNING_ALLOWED=NO build
+
+      - name: Upload test reports
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ios-test-reports
+          path: '**/build/reports/tests/iosSimulatorArm64Test/'
           retention-days: 7

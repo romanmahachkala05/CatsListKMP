@@ -22,7 +22,7 @@ and "which Room fallback" qualify; "used a `HashSet` for O(1) lookup" does not.
 
 Several entries record defects that were introduced *by this modernization* —
 not inherited from the 2022 app. ADR-0013, ADR-0014 and ADR-0015 are all bugs
-written during the rewrite, found afterwards, reproduced, and fixed with tests
+written during the rewrite, found afterward, reproduced, and fixed with tests
 that fail without the fix. They are here because finding them was the work.
 
 | # | Decision | Status |
@@ -44,15 +44,30 @@ that fail without the fix. They are here because finding them was the work.
 | [0015](#adr-0015) | Dedupe a page on write, not with an in-flight guard | Accepted |
 | [0016](#adr-0016) | Feed errors are not retryable | **Superseded** by 0019 |
 | [0017](#adr-0017) | Version-scoped destructive fallback | Accepted |
-| [0018](#adr-0018) | Two-tier verification | Accepted |
+| [0018](#adr-0018) | Two-tier verification | Accepted, **amended** by 0034, 0035 |
 | [0019](#adr-0019) | Make the feed resubscribable instead | Accepted |
 | [0020](#adr-0020) | One serialization library | Accepted |
-| [0021](#adr-0021) | Derive versionCode from the version name | Accepted |
+| [0021](#adr-0021) | Derive versionCode from the version name | Accepted, **amended** by 0037 |
 | [0022](#adr-0022) | Split the app into Gradle modules | Accepted |
 | [0023](#adr-0023) | Paging 3 for the feed, with a `RemoteMediator` | **Superseded** by 0025 |
 | [0024](#adr-0024) | Paging owns the feed's *load* state, not its whole state | Accepted |
 | [0025](#adr-0025) | Page the feed from the network; persist only favorites | Accepted |
 | [0026](#adr-0026) | Koin for dependency injection | Accepted |
+| [0027](#adr-0027) | Ktor for HTTP, replacing Retrofit | Accepted |
+| [0028](#adr-0028) | Migrate to KMP module by module, from the bottom | Accepted, **amended** by 0039 |
+| [0029](#adr-0029) | `:core:data` on Room KMP, with a real desktop target | Accepted |
+| [0030](#adr-0030) | One shared, configured `OkHttpClient` | Accepted |
+| [0031](#adr-0031) | Connectivity as a `Flow`, not a pre-flight check | Accepted |
+| [0032](#adr-0032) | Classify failures once, in `data`, as `AppError` | Accepted |
+| [0033](#adr-0033) | Measure recomposition, then fix stability at the source | Accepted |
+| [0034](#adr-0034) | Run CI on every pull request; `verify` was never enforced | Accepted |
+| [0035](#adr-0035) | `verify` compiles the instrumented tests it cannot run | Accepted |
+| [0036](#adr-0036) | Porting v2.3.0 from the Android app: what changed on the way in | Accepted |
+| [0037](#adr-0037) | The UI moves to Compose Multiplatform, one module at a time | Accepted |
+| [0038](#adr-0038) | Adaptive layout: one grid rule, one width breakpoint | Accepted |
+| [0039](#adr-0039) | iOS targets for every multiplatform module | Accepted |
+| [0040](#adr-0040) | The iOS app: a thin Xcode project around `CatsApp()` | Accepted |
+| [0041](#adr-0041) | 3.0.0: three platforms, three ways to ship | Accepted |
 
 ---
 
@@ -219,6 +234,9 @@ newer one, sharing the single-module classpath, was masking it. Both now
 resolve to one pinned version (`libs.versions.toml`'s `okhttp`). They are
 still two separate `OkHttpClient` instances, each with its own connection pool
 and cache — that part of this gap is unchanged.
+
+Fully closed by [ADR-0026](#adr-0026): one client, provided by Hilt, handed to
+both.
 
 ---
 
@@ -558,7 +576,7 @@ retryable) and `onFeedFailure` (the stream died, not retryable). The error
 screen said "Please restart the app".
 
 **Reasoning at the time.** Offering Retry would have been a dead button —
-fetching another page updates a feed nothing is collecting any more. A button
+fetching another page updates a feed nothing is collecting anymore. A button
 that silently does nothing is worse than no button.
 
 **Why it was superseded.** The premise was that a terminated flow is
@@ -618,7 +636,7 @@ policy decision, made again, and needs the same explicit justification.
 
 ### Two-tier verification
 
-**Accepted** · 2026-09-14
+**Accepted** · 2026-09-14 · **amended** by [ADR-0030](#adr-0030), [ADR-0031](#adr-0031)
 
 **Context.** The instrumented tests only ran when someone remembered to point
 Gradle at a device — and they are the only coverage of the three failures that
@@ -705,7 +723,7 @@ R8 is next on the list. kotlinx.serialization generates its serializers at
 compile time, reducing that reflective surface. Two libraries doing one job is
 also two ways to spell the same thing.
 
-**The behavioural difference that matters.** Gson silently ignores a JSON key
+**The behavioral difference that matters.** Gson silently ignores a JSON key
 the model does not declare; kotlinx.serialization rejects it. Swapping one for
 the other therefore changes how the app reacts to an upstream field being added:
 from ignoring it to failing every response. `Json { ignoreUnknownKeys = true }`
@@ -901,8 +919,9 @@ generation, which made Paging re-run the `RemoteMediator`'s REFRESH — wiping
 the entire cached feed back to page 0 on every favorite toggle, discovered by
 scrolling down, favoriting a cat, and watching the list jump to the top. Fixed
 by moving the favorite overlay out of the query entirely; see
-[`CatFeedDaoTest.pagingSource_isNotInvalidatedByAFavoriteToggle`](../core/data/src/androidTest/kotlin/com/example/catslist/data/local/CatFeedDaoTest.kt)
-for the regression test.
+`CatFeedDaoTest.pagingSource_isNotInvalidatedByAFavoriteToggle` for the
+regression test — removed along with the Room-cached feed by
+[ADR-0025](#adr-0025), so the link is deliberately not live.
 
 The feed only ever appends. TheCatAPI's search endpoint has no signal for
 "cats newer than what I already have," so `LoadType.PREPEND` is always a
@@ -1143,3 +1162,996 @@ that needed help.
 **Review when:** the app has enough screens that `App.startKoin`'s module list
 becomes a thing people forget to update, at which point module aggregation
 needs to move somewhere that fails loudly.
+
+---
+
+## ADR-0027
+
+### Ktor for HTTP, replacing Retrofit
+
+**Accepted** · 2026-09-21
+
+**Context.** Retrofit is JVM-only. It builds its implementation with
+`java.lang.reflect.Proxy` over an annotated interface, which has no counterpart
+on Kotlin/Native, so `CatApiService` as written could never move to
+`commonMain`. Like Hilt in [ADR-0026](#adr-0026), it is a dependency the
+multiplatform work has to replace rather than rearrange.
+
+**Decision.** Ktor 3.6 with the OkHttp engine. `CatApiService` survives as a
+plain `suspend fun` interface — it is what `FakeCatApiService` implements and
+what `CatFeedPagingSource` is tested against — and `KtorCatApiService` becomes
+its one real implementation.
+
+The OkHttp engine specifically, not CIO: OkHttp is already pinned here because
+Coil brings its own ([ADR-0006](#adr-0006)), and using it for both keeps one
+HTTP stack in the app rather than two. It is also JVM-and-Android only, so the
+engine is the piece that becomes `expect`/`actual` when this module moves to
+`commonMain`; the client configuration around it does not.
+
+**Consequences.** The request is now built by hand where Retrofit derived it
+from annotations, which moves a class of mistake from compile time to runtime:
+a wrong path or a mistyped query parameter used to be impossible, and is now
+merely untested. `KtorCatApiServiceTest` is the answer — `catHttpClient` takes
+its engine as a parameter so the test drives the *real* client configuration
+against `MockEngine`, asserting the path, both paging parameters, and that an
+unknown field in the response is still tolerated.
+
+Retrofit's converter is gone too, so the `Json` instance is configured once on
+the client rather than wrapped in a `Converter.Factory`. That is a small
+simplification and the reason `CAT_API_BASE_URL` gained a trailing slash: Ktor
+resolves a request path relative to the default URL, where Retrofit normalized
+the base itself.
+
+**Alternative rejected.** Ktorfit, which keeps the annotated-interface style on
+top of Ktor via KSP. Rejected for the same reason as Koin Annotations in
+ADR-0026 — it reintroduces code generation to preserve a syntax, and this API
+surface is a single endpoint with two query parameters. There is not enough
+here for the generator to earn its place in the build.
+
+---
+
+## ADR-0028
+
+### Migrate to KMP module by module, from the bottom
+
+**Accepted** · 2026-09-21
+
+**Context.** This repository was forked from `CatsListApplication` at v2.2.0 to
+become a Kotlin Multiplatform project. The question was not *whether* the code
+ports — most of it is coroutines, Flow and plain Kotlin — but in what order, and
+what "done" means at each step.
+
+The tempting shape is one large change that stands up `commonMain`,
+`androidMain` and an `iosApp/` at once. That produces a tree that does not build
+for days and a single commit nobody can review.
+
+**Decision.** One module at a time, lowest in the dependency graph first, with
+the Android app building and `./gradlew verify` green at every commit. The order
+follows dependencies, not enthusiasm:
+
+1. Replace the dependencies with no multiplatform story at all, while everything
+   is still Android — Hilt ([ADR-0026](#adr-0026)), then Retrofit
+   ([ADR-0027](#adr-0027)). These are the changes that touch the most files, and
+   they are much easier to review against an otherwise unchanged app.
+2. `:core:model`, then `:core:domain` — pure Kotlin, so the port is a source-set
+   move plus a convention plugin.
+3. `:core:data` — Room, the HTTP engine, and `DownloadManager` all need
+   `expect`/`actual`. Not yet done.
+4. The UI, via Compose Multiplatform. Not yet done. Checked rather than
+   assumed, though: Compose Multiplatform 1.12.0 compiles a `commonMain`
+   Composable for the JVM against this project's Kotlin 2.3.21, and every
+   library the UI depends on — `navigation3-runtime`, `navigation3-ui`,
+   `paging-compose`, `lifecycle-viewmodel-compose`,
+   `lifecycle-viewmodel-navigation3` — already publishes `common`, `jvm` and
+   `native` variants. The obstacle is size, not feasibility: ~3,300 lines across
+   four modules, 50 `R.string` lookups to move to Compose resources, the Compose
+   UI test rules, and a desktop entry point.
+
+`:core:domain` is a new module, split out of `:core:data`. The use cases,
+`CatRepository` and `ImageDownloader` were always platform-free but sat in a
+module that also owned Room and the API client, so they could not move without
+it. Extracting the ports is what ADR-0022's layering already implied; KMP is
+what finally forced it.
+
+**Targets: `jvm()` only, for now.** The desktop target is the one non-Android
+platform this build can compile and test on any host, so it is the one that gets
+declared. iOS is not declared — a target that is configured but never built is a
+claim the build cannot back up, and adding it needs a macOS machine in CI before
+it means anything.
+
+**Consequences.** Android consumers resolve the `jvm` variant of the
+multiplatform modules through Kotlin's platform compatibility rules, so nothing
+downstream changed when `:core:model` and `:core:domain` moved. That is what
+makes the incremental order possible at all.
+
+The cost is a tree that is *partly* multiplatform for a while, which is a real
+state to be in and not a comfortable one: `:core:domain` is `commonMain` while
+`:core:data` right below it is Android-only, so the ports are portable and
+nothing that implements them is. Until step 3 lands, "multiplatform" describes
+the build, not yet the app.
+
+One deferred piece worth naming: the use-case tests still live in
+`:core:data/src/test`, not with the code they exercise. They depend on
+`:core:testing`'s fakes, and `:core:testing` is an Android library, so the tests
+cannot follow the use cases into `commonTest` until it moves too. They still run
+and still cover the domain; they are just in the wrong module.
+
+**Review when:** `:core:data` reaches `commonMain`. At that point the desktop
+target has a real data layer behind it, and whether the UI follows via Compose
+Multiplatform stops being hypothetical.
+
+---
+
+## ADR-0029
+
+### `:core:data` on Room KMP, with a real desktop target
+
+**Accepted** · 2026-09-21
+
+**Context.** Step 3 of [ADR-0028](#adr-0028). `:core:data` is where the platform
+actually shows up: Room, an HTTP engine, and `DownloadManager` are three
+different kinds of "this only exists on Android", and each needed a different
+answer.
+
+**Decision.** The module moves to `commonMain` with `androidTarget` and `jvm`,
+and splits on exactly three seams:
+
+- **The database file.** Room 2.8 is multiplatform, so the entity, DAO,
+  `@Database` and all three migrations are common. Only *where the file lives*
+  differs, so `withCatDatabaseDefaults()` holds the shared configuration and each
+  platform supplies its own `catDatabaseBuilder`. Android uses
+  `getDatabasePath()`; desktop uses `~/.catslist`.
+- **The HTTP engine.** OkHttp runs on both targets, so the engine is not really
+  a platform difference — only its construction is. `catHttpClient` already took
+  its engine as a parameter ([ADR-0027](#adr-0027)), so the split is one Koin
+  binding per platform and nothing else.
+- **Downloading an image.** This one is a genuine difference.
+  `DownloadManager` has no desktop equivalent, so `DesktopImageDownloader`
+  fetches the bytes with the same Ktor client and writes them to `~/Downloads`.
+
+DI splits the same way: `dataModule` is common and `includes(platformDataModule)`,
+an `expect val` whose `actual` supplies the three answers above.
+
+**Consequences.** The desktop target is not a configuration claim — it is tested.
+`CatDatabaseJvmTest` builds the real database through the shipped
+`withCatDatabaseDefaults()` and exercises the favorites round-trip on the JVM,
+with no Android on the classpath. If Room's KMP codegen, the bundled SQLite
+driver or the migration set were wrong for that target, nothing else in the build
+would catch it.
+
+Three things had to change that were not about Room at all:
+
+- **`com.android.library` cannot be applied with the multiplatform plugin as of
+  AGP 9.** The replacement, `com.android.kotlin.multiplatform.library`, renames
+  the source sets: `androidMain`, `androidHostTest`, `androidDeviceTest` — not
+  `main`, `test`, `androidTest`. It also leaves Android resources *off* by
+  default, which `CatImageDownloader`'s `R.string` lookups need switched back on.
+- **`:core:data` was getting KSP from the Hilt convention plugin** and now
+  applies it directly — already true since ADR-0026, but the per-target
+  `kspAndroid`/`kspJvm` wiring is new: Room's processor runs once per target.
+- **detekt and ktlint both needed teaching.** detekt's default test exclusions
+  predate AGP's multiplatform source-set names, and ktlint's generated-source
+  filter compared `File.path` against `"/build/"` — which on Windows never
+  matched, because that path uses backslashes. The filter had been silently
+  inert; Room's KSP output in a multiplatform source set is simply the first
+  thing that made it visible.
+
+`CatFeedPagingSource` traded `ConcurrentHashMap.newKeySet()` for a `MutableSet`
+behind a `Mutex`. The guarantee is unchanged — Paging can still have a refresh
+and an append in flight at once — but `java.util.concurrent` is not a thing on
+every target.
+
+**What this does *not* claim.** The Android app compiles and its unit tests pass,
+but nothing here has been run on a device or an emulator; the instrumented tests
+are compiled, not executed, exactly as before ([ADR-0018](#adr-0018)). And there
+is still no desktop *application* — the data layer runs on the JVM, the UI does
+not, because Compose Multiplatform is step 4.
+
+**Review when:** the UI moves. At that point `jvm()` stops being a target that
+only tests exercise and becomes something a person can actually open.
+
+---
+
+## ADR-0030
+
+### One shared, configured `OkHttpClient`
+
+**Accepted** · 2026-09-21 · ported from `CatsListApplication`'s ADR-0026, adapted for Koin and Ktor
+
+**Context.** [ADR-0006](#adr-0006) left this open and the README listed it under
+**Known gaps**: the Ktor client was handed no `OkHttpClient` and `:app` built no
+`ImageLoader`, so each library fell back to its own default. Two clients meant
+two connection pools, two thread pools and two sets of timeouts — over a single
+host, `api.thecatapi.com`, that the app talks to constantly. The timeouts were
+the sharper half: OkHttp defaults `callTimeout` to 0, so no request had an
+end-to-end cap at all. A call that kept almost-progressing could hang behind the
+feed's spinner indefinitely, with nothing to report and nothing to retry.
+
+**Decision.** `catOkHttpClient()`, in `:core:data`'s `commonMain`, builds one
+`OkHttpClient` with a 15s call, connect and read timeout. Each platform's Koin
+module registers it as a `single` and hands it to Ktor's OkHttp engine via
+`OkHttp.create { preconfigured = get() }`. `App` implements
+`SingletonImageLoader.Factory` and registers `OkHttpNetworkFetcherFactory` over
+the same client, resolved with Koin's `get<OkHttpClient>()`.
+
+**Consequences.** One connection pool, so an image request reuses the TLS
+connection the feed's JSON request just warmed. One place to add an interceptor
+or change a timeout. Every request now fails within a bounded time, so a
+hung call becomes a failure the screen can report instead of a spinner with
+nothing behind it.
+
+No `dagger.Lazy` wrapper needed: Coil calls `newImageLoader` on first image
+load, well after `onCreate`, so the client is already built on whichever
+thread that turns out to be — the same guarantee `Lazy` gave in the original,
+for free, because Koin's `get()` inside that function is itself the deferred
+step.
+
+The registration is explicit rather than left to `coil-network-okhttp`'s
+`ServiceLoader`, which would build an `OkHttpClient()` of its own.
+`RealImageLoader` assembles the builder's components ahead of the
+ServiceLoader's, so the explicit factory is matched first and that default is
+never constructed.
+
+**Alternatives rejected.** Building the `ImageLoader` in `:core:designsystem`,
+where `AsyncImage` lives: that module applies neither Koin nor `:core:data`, so
+it cannot reach the client. Wiring one singleton across two libraries is
+composition-root work, and `:app` is the composition root.
+
+---
+
+## ADR-0031
+
+### Connectivity as a `Flow`, not a pre-flight check
+
+**Accepted** · 2026-09-21 · ported from `CatsListApplication`'s ADR-0027
+
+**Context.** The app had no idea whether the device was online. Nothing asked,
+and `ACCESS_NETWORK_STATE` was not even requested. Every transport failure
+therefore looked the same from the inside: a `UnknownHostException` is what you
+get with the radio off *and* what you get when the host's DNS is down, and
+without a second source of truth there is no way to tell which sentence to put
+on screen.
+
+**Decision.** A `NetworkMonitor` port in `:core:domain`, exposing
+`isOnline: Flow<Boolean>`. `ConnectivityNetworkMonitor`, in `:core:data`'s
+`androidMain`, implements it over `ConnectivityManager.registerNetworkCallback`.
+The permission is declared in that source set's own manifest and merges up.
+
+**Consequences.** The one thing it is for: a failure can now be classified as
+"you are offline" only when that is actually true. Everything else stays
+"couldn't reach the server", which is the difference between sending a connected
+user to check a connection that is not broken and telling them what happened.
+
+The stream is keyed on `NET_CAPABILITY_VALIDATED`, not on `onAvailable`.
+`onAvailable` fires as soon as a network attaches, before anything has confirmed
+it carries traffic — the state a captive-portal Wi-Fi never gets past, and where
+requests fail while the device looks connected. Validated networks are tracked
+as a **set**: Wi-Fi and cellular can be validated at once, and losing one of them
+is not going offline.
+
+The current state is seeded by hand on collection, because the callback only
+reports changes from the moment it registers. Without that a collector on a
+steady connection would wait forever for its first value.
+
+**Desktop has no `ConnectivityManager`.** `DesktopNetworkMonitor`, in `jvmMain`,
+always reports online — a real check (`java.net.NetworkInterface`, or platform
+reachability) is future work, not something this port took on (ADR-0036).
+
+**Alternatives rejected.** `suspend fun hasInternetConnection(): Boolean`, called
+before each request — the shape this was modeled on, and the tempting one
+because it reads as a guard. It answers only "should I try?", and it answers it
+about an instant that has already passed by the time the request goes out: a
+device can pass the check and lose the network mid-flight, which is precisely
+the case that needs the good error message. A `Flow` answers that question too,
+and also "did it come back?", which is the half a boolean cannot express at all
+— it is what would let a screen recover on its own rather than waiting to be
+tapped.
+
+Reporting offline when `ConnectivityManager` is unavailable. The monitor sends
+`true` instead: refusing to try on a device that may well be online fails a
+request that would have worked, and the request itself is the better judge.
+
+---
+
+## ADR-0032
+
+### Classify failures once, in `data`, as `AppError`
+
+**Accepted** · 2026-09-21 · ported from `CatsListApplication`'s ADR-0028, adapted for Ktor
+
+**Context.** [`ARCHITECTURE.md`](ARCHITECTURE.md) §3c has said since ADR-0003 that
+an error handler branches on "a sealed error type from the data layer, never on
+raw exception classes in the ViewModel". No such type existed. Both error
+handlers took a `Throwable` and *ignored the parameter*:
+
+    override fun onFavoriteIdsFailure(error: Throwable) {
+        stateHolder.showFavoritesUnavailable()
+    }
+
+The cost was on screen. A failed feed load rendered one string —
+"Couldn't load a cat. Check your connection and try again." — for every cause:
+an unresolvable host, a 429 from TheCatAPI's anonymous rate limit, a 503, a
+socket timeout, a response the wire model no longer parses. Two of those five
+tell a connected user to go and fix a connection that is not broken, and the
+rate-limited one, the most common of them in practice, hides the only advice
+that would have worked: wait a moment.
+
+**Decision.** A sealed `AppError` in `:core:model`, with a single `ErrorMapper`
+in `:core:data` that is the only code in the app that knows what a
+`SocketTimeoutException` or an HTTP 429 means. Everything crossing out of `data`
+is classified: `CatRepositoryImpl` wraps its writes and its favorites stream,
+`CatFeedPagingSource` puts one in `LoadResult.Error`. `presentation` unwraps
+with `Throwable.asAppError()` and renders through a shared `AppError.toUiText()`,
+which a screen overrides per case when it can say something better.
+
+**Consequences.** Nine distinguishable messages where there was one. The mapping
+is unit-tested per branch, including the two that need it most: the same
+`UnknownHostException` is `NoConnection` offline and `Unreachable` online.
+
+`ErrorMapper.map` is `suspend`, which is the price of that distinction — telling
+those two apart means asking [ADR-0031](#adr-0031)'s `NetworkMonitor`, and asking
+it *at the moment of failure* rather than before the request, when the answer
+would have been a guess about the future.
+
+`FakeCatRepository` now throws `AppErrorException` too, and its error fields
+changed from `Throwable?` to `AppError?`. That is the point rather than a cost:
+a fake that threw a bare `IOException` let a ViewModel pass a test it would fail
+against the real repository.
+
+**The throwable is not carried.** `AppError` holds a classification and, for HTTP,
+a status code — not the exception. It is logged in `ErrorMapper`, the one place
+with the full stack trace and the context to say what it was doing. Downstream,
+nothing can act on a `SocketTimeoutException` that it cannot act on with
+`Timeout`. Leaving it out also makes these compare by value, so a test asserts
+`AppError.Server(503)` instead of reaching into an exception it had to construct
+to get a value it can match.
+
+**`AppErrorException` is a carrier, not a decision.** `PagingSource.LoadResult.Error`
+and a `Flow`'s failure channel both insist on a `Throwable`, so one wraps the
+`AppError` across those two boundaries. It is thrown only by `data` and unwrapped
+only by `Throwable.asAppError()`, which is the single `as?` this design costs.
+
+**Ported for Ktor.** The mapping source is different from the original —
+`retrofit2.HttpException` becomes Ktor's `ClientRequestException`/
+`ServerResponseException`, which only throw because `catHttpClient` sets
+`expectSuccess = true` — but the classification each produces is unchanged, and
+`ErrorMapperTest` covers both the connectivity-dependent cases and the HTTP-code
+ranges against the real Ktor exception types (ADR-0036).
+
+**Alternatives rejected.** Returning `Result<T, AppError>` from the repository
+instead of throwing. It is the better shape in the abstract, and it does not fit
+what is actually here: the two failing paths are a `Flow` that Room terminates
+by throwing and a `PagingSource` that Paging requires to report a `Throwable`.
+Neither returns a value that a `Result` could wrap, so the type would have been
+carried by two `suspend` write methods and nothing else. Worth revisiting when
+there is a call that genuinely returns a value that can fail.
+
+---
+
+## ADR-0033
+
+### Measure recomposition, then fix stability at the source
+
+**Accepted** · 2026-09-21 · ported from `CatsListApplication`'s ADR-0029
+
+**Context.** Strong skipping has been on by default since Kotlin 2.0.2x, which
+retired most of the `@Stable` annotation habit — an unstable parameter now costs
+an identity comparison rather than an unconditional recomposition, and lambdas
+are remembered automatically. What it did not retire is the two cases the
+compiler genuinely cannot infer. Nobody here had looked, and "it is probably
+fine" is not something this repo has a way to check.
+
+**Decision.** Turn on the Compose compiler's own metrics and stability reports
+behind `-Pcatslist.composeMetrics`, read them, and fix what they actually said.
+
+**What they said.** Three findings, none of them guesses:
+
+- `CatItem(unstable cat: Cat)`. `Cat` lives in `:core:model`, a pure-Kotlin
+  module with no Compose compiler on it, so it carries no stability metadata and
+  is assumed unstable. The feed hands every card a fresh instance each pass —
+  `cat.copy(isFavorite = ...)`, the render-time overlay of [ADR-0024](#adr-0024)
+  — and an unstable parameter is compared by **identity**, so no card in the
+  list could ever skip. The `copy` is harmless against a stable type, whose
+  comparison is `equals`; against an unstable one it defeats skipping entirely.
+- `ErrorMessage(unstable message: UiText)` and `EmptyMessage` likewise.
+  [`ARCHITECTURE.md`](ARCHITECTURE.md) §8 has specified `@Immutable sealed
+  interface UiText` since ADR-0003; the code never had the annotation.
+- `UiText.Resource` was *itself* inferred unstable — `args: List<Any>`, a raw
+  interface that could be a `MutableList`. So the missing annotation would have
+  been a lie as well as missing.
+
+**The fixes, in the place each belongs.** `Cat` and `androidx.paging.LoadState`
+are declared in `config/compose-stability.conf`, which every Compose module
+points at — the mechanism that exists for classes you cannot annotate, whether
+because the module has no Compose compiler or because you do not own the code.
+`UiText` gained the `@Immutable` its spec already required, and `args` became an
+`ImmutableList`, which is what makes that annotation true rather than merely
+present.
+
+**Consequences.** Every parameter across `:core:designsystem`, `:feature:feed`
+and `:feature:favorites` is now stable, with two exceptions that should stay
+that way: the `viewModel` on each screen's private entry overload. A ViewModel
+is genuinely unstable, that composable is called once per screen with the
+instance `koinViewModel()` returns, and skipping it is not a thing anyone wants.
+`:feature:feed` went from 12 known-unstable arguments to 0 that matter.
+
+Metrics stay **off** by default. They are diagnostic output, and generating them
+on every build costs time an ordinary build gets nothing back for. The stability
+config is always on, because unlike the reports it changes what the compiler
+generates.
+
+**No automated guard.** Re-running the flag and reading the report is a manual
+step; nothing fails the build if a future change makes a parameter unstable
+again. A recomposition-count test would catch it, but it needs a device and
+would therefore sit behind `verifyOnDevice` ([ADR-0018](#adr-0018)) rather than
+the gate every PR runs. Recorded as a known limit rather than papered over.
+
+**Alternatives rejected.** Annotating more types by hand. It does not reach
+either of the two real cases: a class in a module without the Compose compiler
+cannot be annotated usefully from outside it, and `androidx.paging.LoadState` is
+not ours to annotate at all.
+
+Moving `Cat` out of `:core:model` into a module that applies the Compose
+compiler. That trades a two-line config entry for putting Compose on the
+classpath of the one module [ADR-0022](#adr-0022) deliberately keeps free of it.
+
+---
+
+## ADR-0034
+
+### Run CI on every pull request; `verify` was never enforced
+
+**Accepted** · 2026-09-21 · **amends** [ADR-0018](#adr-0018) · ported from `CatsListApplication`'s ADR-0030
+
+**Context.** Four stacked pull requests were opened, each based on the branch
+below it because each depended on the one before. One of them ran CI. The other
+three reported no checks at all, and nothing said why. This happened in
+`CatsListApplication`; this repo inherits the fix and the CI workflow it changed.
+
+The cause is that `pull_request`'s `branches:` filter matches the **base**
+branch, not the head:
+
+    on:
+      pull_request:
+        branches: [dev, master]
+
+A pull request based on `dev` matched. One based on `tech/network-monitor-flow`
+matched nothing, so no workflow ran, so it sat with no checks — which looks
+exactly like a queue that has not started yet. The filter reads as an economy
+and behaves as a hole, and the hole opens precisely when a change was large
+enough to be worth splitting up.
+
+Checking whether the eventual merge into `dev` would catch these anyway turned
+up the second half of this entry. [ADR-0018](#adr-0018) states:
+
+> `verify` is a required status check on `dev`, so the gate is enforced rather
+> than remembered.
+
+**That was never true.** Neither `dev` nor `master` has ever had branch
+protection — both report `protected: false`, and the repository's only two
+rulesets are auto-imported tag protections for `v1.0.1` and `v1.0.2`. No rule
+references `verify` anywhere. CI runs, CI reports, and a red pull request can be
+merged.
+
+**Decision.** Drop the `branches:` filter from the `pull_request` trigger, so
+every pull request runs `verify` whatever it targets. The `push` trigger keeps
+its `[dev]` filter, which is genuinely a base-branch question.
+
+Turn on branch protection for `dev` and `master` with `verify` required, making
+ADR-0018's sentence true as written. That is a repository setting rather than a
+file here, so it is recorded in this entry and applied by hand.
+
+**Consequences.** CI minutes are spent on intermediate bases in a stack — which
+is the point: an intermediate pull request is the one whose code nobody has run.
+The cost is bounded by `concurrency`, which already cancels superseded runs.
+
+Until branch protection is actually switched on, CI in this repository is
+**advisory**. ADR-0018's claim is corrected rather than deleted, because the
+wrong sentence is the more useful record: it is the one that stopped anyone
+checking, and it went unexamined through twelve merged pull requests.
+
+**A second hazard, recorded because it also bit.** A stacked pull request must be
+merged **bottom-up**, letting GitHub retarget each one to `dev` after the one
+below it lands. Merging them in the other order — or merging each into the
+literal base branch it was opened against — marks all four green and merged
+while only the bottom one reaches `dev`; the rest land in feature branches that
+nothing points at. That happened here, and took a branch-by-branch comparison
+against `dev` to notice, because every pull request said "merged". CI could not
+have caught it: each merge was individually valid. The defense is merge order,
+and the cheaper alternative is not to stack at all. This repository's own stack
+(ADR-0026 through ADR-0029, and this one) follows that discipline.
+
+**Alternatives rejected.** Adding each stack's intermediate branches to the
+filter. It puts the burden on whoever opens the stack, at the moment they are
+least likely to be thinking about CI configuration, and it fails silently again
+the first time someone forgets.
+
+Flattening a stack so every pull request targets `dev` directly. The
+dependencies are real — the error classification does not compile without the
+network monitor — so flattening either duplicates commits across pull requests
+or opens ones that cannot build.
+
+---
+
+## ADR-0035
+
+### `verify` compiles the instrumented tests it cannot run
+
+**Accepted** · 2026-09-21 · **amends** [ADR-0018](#adr-0018) · ported from `CatsListApplication`'s ADR-0031
+
+**Context.** [ADR-0032](#adr-0032) changed what the feed renders for a failed
+load, and [ADR-0033](#adr-0033) changed `UiText` and
+`CatsListFavoritesStatus.Unavailable` from objects into types carrying a value.
+The unit tests were updated with them. The instrumented tests were not, and
+nothing said so: `verify` passed, CI passed, five pull requests merged — in
+`CatsListApplication`, where this happened; this repo inherits the fix.
+
+Three tests were broken, in two different ways. `CatsListContentTest` asserted
+`catslist_error_loading_cats` — a string the screen had stopped rendering, which
+would have failed at runtime. Worse, `CatsListContentTest` and
+`CatRepositoryImplTest` no longer **compiled**: one constructed
+`CatsListFavoritesStatus.Unavailable` as an object, the other called
+`CatRepositoryImpl` without its new `ErrorMapper`. The whole instrumented source
+set was unbuildable, and the gate had nothing to say about it.
+
+[ADR-0018](#adr-0018) split verification because instrumented tests need a
+device and a gate that fails without one teaches people to skip it. That
+reasoning is still right, and it quietly conflated two different things:
+*running* those tests needs a device, *compiling* them does not.
+
+**Decision.** `verify` additionally depends on `assembleDebugAndroidTest` for
+every module that has an instrumented test source set. No device, no emulator,
+no change to what `verifyOnDevice` means. Both gates now share one
+`androidTestModules` list rather than filtering `subprojects` twice.
+
+**Consequences.** A change that breaks instrumented-test *source* now fails on
+the same gate as everything else, seconds after it is made, instead of waiting
+for whenever someone next attaches a device. Given those tests are the only
+coverage of the three data-loss paths, and ADR-0018 already admits they are the
+least-run tests in the project, the gap between "broken" and "noticed" was the
+whole risk.
+
+An assertion that compiles and is simply *wrong* — the
+`catslist_error_loading_cats` one — still needs a device to catch. This closes
+the larger half of the hole, not all of it.
+
+`verify` gets slower by one APK build per module with instrumented tests. This
+repo's own `androidDeviceTest` source sets (Kotlin Multiplatform's name for the
+same thing, per ADR-0029) are covered by the same dependency.
+
+**Alternatives rejected.** Running the instrumented tests in CI on a Gradle
+Managed Device, which is ADR-0018's own **Review when** and would collapse the
+two tiers entirely. It is the better answer and a bigger change; this one is a
+two-line dependency that needed no new infrastructure, and it should not wait
+behind that.
+
+Leaving it to `verifyOnDevice`. That is where it was, and it is how three broken
+tests reached `dev` across five pull requests.
+
+---
+
+## ADR-0036
+
+### Porting v2.3.0 from the Android app: what changed on the way in
+
+**Accepted** · 2026-09-22
+
+**Context.** `CatsListApplication` kept moving after this repo forked from it at
+v2.2.0 ([ADR-0028](#adr-0028)): ten pull requests landed there, recorded as
+that repo's own ADR-0026 through ADR-0031. This repo needed that work — R8 for
+release, a launcher icon, `AppError`/`ErrorMapper`, `NetworkMonitor`, Compose
+stability fixes, and two CI corrections — and the two repos share Git history
+back to the fork point, so it arrived as an ordinary merge of
+`CatsListApplication`'s `master` rather than a re-fork.
+
+**Decision.** `git merge` brought the six new ADRs in as ADR-0030 through
+ADR-0035, renumbered because this repo had already claimed 0026–0029 for Koin,
+Ktor and the module-by-module migration before the fork's sibling repo had
+written its own 0026–0031 in parallel — a collision only visible once both
+histories met. Each renumbered entry keeps its original reasoning; ADR-0030 and
+ADR-0032 also note where the *mechanism* changed (Hilt → Koin, Retrofit → Ktor)
+because the original text named APIs — `NetworkModule`, `dagger.Lazy`,
+`retrofit2.HttpException` — that do not exist here.
+
+**What the merge actually touched, beyond renumbering:**
+
+- **`BindsModule.kt` and `NetworkModule.kt`**, Hilt's `@Binds`/`@Provides`
+  modules, are gone; their bindings (`CatRepository`, `ImageDownloader`,
+  `NetworkMonitor`, the shared `OkHttpClient`) moved into `dataModule` and each
+  platform's `platformDataModule` (ADR-0026).
+- **`ConnectivityNetworkMonitor`** moved from a flat Android source set into
+  `:core:data`'s `androidMain`, and lost its Hilt constructor injection for a
+  plain one Koin fills in.
+- **`ErrorMapper`** moved into `commonMain`. Its HTTP-code branch now catches
+  Ktor's `ClientRequestException`/`ServerResponseException` instead of
+  `retrofit2.HttpException`; its connectivity branches still catch
+  `java.net`/`java.io` types directly, which is the same scoped deviation
+  `CatFeedPagingSource`'s `Mutex` swap and `CatOkHttpClient.kt` already
+  document — valid for `jvm()`+`androidTarget()`, revisited if a non-JVM target
+  arrives. A tiny `expect`/`actual` `dataLogWarning` replaces `android.util.Log`,
+  which has no multiplatform form.
+- **`DesktopNetworkMonitor`**, a new `jvmMain` file with no Android counterpart
+  to merge from: always reports online, since desktop has no `ConnectivityManager`
+  and a real check was out of scope for this port (ADR-0031's note).
+- **The shared `OkHttpClient`** is one function, `catOkHttpClient()`, called
+  from both platforms' Koin modules rather than duplicated — `okhttp3` types are
+  usable in `commonMain` today for the same reason `java.net`/`java.io` are.
+
+**Consequences.** `./gradlew verify` passes clean from a fresh checkout, and
+`:core:data:jvmTest` still runs the real desktop database (ADR-0029). What is
+**not** verified by this merge: nothing here has been run on a device — Koin's
+graph, `ConnectivityNetworkMonitor`, and the new Coil/OkHttp wiring are
+compiled and unit-tested, not launched. `ErrorMapperTest` was rewritten to
+build its `ClientRequestException`/`ServerResponseException` cases from a real
+`MockEngine` call rather than hand-constructing them, since Ktor's exception
+types are not built the way Retrofit's `HttpException` was.
+
+**Review when:** `CatsListApplication` moves again. The two repos share history
+only up to the commit each merge actually pulls; the next one repeats this ADR's
+shape — merge, renumber past whatever this repo has claimed since, adapt what
+named a mechanism the fork replaced.
+
+---
+
+## ADR-0037
+
+### The UI moves to Compose Multiplatform, one module at a time
+
+**Context.** Step 4 of ADR-0028's order: the UI. ADR-0028 already checked that
+every library the screens use publishes common, JVM and native variants, so the
+question left was how, not whether. Two things made the "how" less obvious than
+moving files into `commonMain`: Android's `R` class, which every screen reads
+its strings and drawables through, has no multiplatform form; and the modules
+cannot all move at once without one unreviewable pull request.
+
+**Decision.** Compose Multiplatform (the `org.jetbrains.compose` plugin), applied
+through a new additive convention plugin, `catslist.kmp.compose`, next to
+`catslist.kmp.android.library`. Modules move bottom-up, the same order ADR-0028
+used for the data layer: `:core:ui` first, then `:core:testing`,
+`:core:designsystem`, `:feature:favorites`, `:feature:feed`.
+
+Strings and drawables move to **Compose resources**
+(`src/commonMain/composeResources/`), read through a generated `Res` class.
+Every module gets its own `Res`, in a package derived from its Gradle path
+(`:core:ui` → `com.example.catslist.core.ui.resources`) — the same
+no-collisions guarantee a per-namespace `R` gave. `Res` stays internal unless
+something outside the module has to name a resource.
+
+`UiText.Resource` holds a `StringResource` instead of an `@StringRes Int`. The
+non-composable `resolve(context)` becomes `suspend fun load()`: Compose resources
+are read from files, not from a `Context`, and reading a file suspends.
+
+**One transitional case, now gone.** Compose resources need the multiplatform
+plugin — tried and confirmed: in a `com.android.library` module the plugin
+generates no resource tasks. So while the features were still Android-only,
+their own strings could only be `R` ids, and `UiText` carried them as
+`UiText.AndroidResource`. It
+resolved on Android and threw on desktop, where nothing could create one. It went
+when `:feature:feed`, the last module to move, did — along with the
+`load(context)` overload that existed only to resolve it outside composition.
+
+**Consequences.** Desktop tests of anything that reads a resource need Skia's
+native library for the host OS — reading a string asks it for the system theme —
+so the convention plugin adds it to `jvmTest`. `:core:ui`'s tests now run there,
+including one that reads the real strings: Android's `strings.xml` escapes
+apostrophes and Compose resources does not, so a file copied verbatim would show
+backslashes, and only reading the text catches that.
+
+Vector drawables carry over as Android vector XML, which Compose resources
+parses on every platform — including Android, where it replaces the framework's
+own parser. It does not know Android's theme references: the icons'
+`@android:color/white` fill crashed the first desktop test to draw one, and is
+now a literal `#FFFFFFFF` (the icons are tinted where they are used, so the value
+never showed). The Android-only parts that remain — dynamic colour and the status
+bar's icon tint in `CatsListTheme` — are an `expect`/`actual` pair that does
+nothing on desktop.
+
+UI tests are split by what they need. Anything about the device — the card
+sitting clear of the status bar, edge-to-edge — stays an instrumented test. The
+components themselves get desktop tests (`runComposeUiTest` in `jvmTest`),
+which `./gradlew verify` runs with no device.
+
+On Android, CMP's artifacts resolve to the androidx Compose ones, so the Compose
+BOM still decides what the app ships; nothing on the Android side changes
+version.
+
+**The root UI is shared too.** `CatsNavDisplay`, a `CatsApp()` composable and
+the Koin module list (`appModules`) live in a multiplatform `:shared` module;
+`:app` keeps only `MainActivity` and `App`, and a desktop entry point needs no
+more than that either. Two things only showed up once the whole app ran on
+desktop, in `CatsAppDesktopTest`:
+
+- **ADR-0028's library check was one level too shallow.** Google's
+  `navigation3-ui` *does* publish a desktop variant — whose `NavDisplay` throws
+  "Implemented only in JetBrains fork". Off Android, Navigation 3's UI and its
+  ViewModel integration have to come from JetBrains
+  (`org.jetbrains.androidx.navigation3:navigation3-ui`,
+  `org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-navigation3`), which on
+  Android are built from the same source against Google's `navigation3-runtime`.
+  Publishing a variant is not the same as implementing one.
+- **Off Android, a back stack cannot find its keys' serializers by
+  reflection**, so every `NavKey` is registered in a `SavedStateConfiguration`
+  next to `CatsNavDisplay`. A key missing from it fails only when the stack is
+  saved — switching tabs does it, which is why the desktop test switches tabs.
+
+Koin's Compose integration remembers the global Koin it first sees, so a UI test
+that starts and stops Koin per test gets the previous test's closed scope. The
+desktop tests hand the composition a Koin of their own (`KoinIsolatedContext`)
+instead.
+
+**Two apps, one version.** With a desktop app beside the Android one, the
+version moved from `app/build.gradle.kts` into `gradle.properties`
+(`catslist.version`): Android still derives `versionCode` from it (ADR-0021,
+otherwise unchanged) and the desktop installers use it as it stands. The
+installers are built by `.github/workflows/release.yml`, one runner per OS
+because jpackage cannot cross-package, on every version tag and on any pull
+request that touches `:desktopApp` — packaging fails in ways `verify` never
+exercises, and the packaged app runs on a trimmed Java runtime whose missing
+module only shows when the code needing it first runs.
+
+**Review when:** AGP's Kotlin Multiplatform library plugin and Compose resources
+stop agreeing — they are two separately versioned plugins meeting at the Android
+resource pipeline, which is where an upgrade of either would break first.
+
+---
+
+## ADR-0038
+
+### Adaptive layout: one grid rule, one width breakpoint
+
+**Context.** Until now every screen was one full-width column under a bottom bar,
+laid out for a phone held upright. A phone in landscape stretched each card into
+a strip the photo barely showed through, and the desktop app only looked right
+because its window opened phone-shaped. With desktop shipping and iOS (iPad
+included) next, "phone, portrait" stopped being the only case.
+
+**Decision.** Two rules, both in common code, so every platform gets them:
+
+- **Cats lay out in a grid, not a column.** The feed, favorites and their
+  loading skeleton are `LazyVerticalGrid`s sharing one column rule,
+  `CatGridCells` in `:core:designsystem`: as many columns as fit at 340dp. A
+  phone upright gets one, a phone on its side two, a wide desktop window three
+  or four. The feed stays on Paging — `LazyPagingItems` indexes a grid exactly
+  as it did a column — and its in-list notices span the full row.
+- **Navigation follows the window's width.** Below 600dp, Material's
+  compact/medium breakpoint, the floating bottom bar stays; from 600dp it
+  becomes a floating `NavigationRail` at the start edge, and the lists leave room
+  for it there the way they leave room for the bar at the bottom.
+
+The width is read with `BoxWithConstraints` around the scaffold rather than
+from `material3-adaptive`'s window size classes: one breakpoint does not need a
+dependency, and constraints are what a test can set.
+
+**Consequences.** Both rules are tested on desktop at fixed sizes: the bar at
+400dp and the rail at 1000dp (`CatsAppDesktopTest`), one card per row at 400dp
+and two side by side at 1000dp (`CatsListContentDesktopTest`).
+
+**Alternatives rejected.** `NavigationSuiteScaffold`, which switches between bar
+and rail by itself: it brings Material's standard bar and rail, and this app's
+are floating pills. A grid with a fixed column count per breakpoint: an
+adaptive minimum width gets the in-between widths — a narrow desktop window, a
+small tablet — right without listing them.
+
+**Review when:** a screen needs a layout that is not a list of cats — a detail
+pane beside the grid would be the case for `material3-adaptive`'s list-detail
+scaffolds.
+
+---
+
+## ADR-0039
+
+### iOS targets for every multiplatform module
+
+**Accepted** · 2026-09-24 · amends [ADR-0028](#adr-0028)'s "Targets: `jvm()` only"
+
+**Context.** ADR-0028 declared only `jvm()` beside Android, because a target that
+is configured but never built is a claim the build cannot back up, and iOS needs
+a macOS machine to build at all. That machine is now here, and CI has a macOS
+runner. Two pieces of `:core:data`'s `commonMain` only compiled because every
+target was a JVM (ADR-0036 names both): `ErrorMapper` caught `java.net`/`java.io`
+exceptions, and the shared `OkHttpClient` was built in common code.
+
+**Decision.** `catslist.kmp.library` and `catslist.kmp.android.library` declare
+`iosArm64()` and `iosSimulatorArm64()`, for a device and the simulator on Apple
+silicon. There is no `iosX64`, since nothing here builds on an Intel Mac. On a
+host that cannot build iOS, Kotlin skips those targets and the rest builds as
+before. `:desktopApp` stays `jvm()` only and applies the multiplatform plugin
+directly, since an application for the desktop has nothing to compile for iOS.
+
+The two JVM-isms went first:
+
+- **`ErrorMapper` catches Ktor's multiplatform types:**
+  `io.ktor.client.network.sockets.SocketTimeoutException` and
+  `kotlinx.io.IOException`. On the JVM both are typealiases for the `java.net`
+  and `java.io` classes it caught before, so Android and desktop classify
+  exactly as they did, and `ErrorMapperTest` passes unchanged. The Darwin engine
+  throws the same `SocketTimeoutException` for `NSURLErrorTimedOut` and a
+  `DarwinHttpRequestException`, which is an `IOException`, for everything else.
+  The separate `UnknownHostException` branch is gone, because it produced the
+  same result as the `IOException` branch below it.
+- **OkHttp lives in a `jvmAndAndroid` source set**, now declared by the
+  convention plugin for every Android-and-multiplatform module rather than by
+  `:core:testing` alone. The 15-second cap is a common constant that each
+  platform applies to its own engine: OkHttp's `callTimeout`, and URLSession's
+  request and resource timeouts.
+
+iOS then answers the same questions every platform does in `platformDataModule`:
+
+- **Database:** Room's KSP processor runs for both iOS targets, over the same
+  bundled SQLite. The file lives in Application Support, where iOS keeps data an
+  app owns and a user never browses.
+- **Network:** `IosNetworkMonitor` reads `NWPathMonitor`. A *satisfied* path is
+  the closest iOS has to Android's `NET_CAPABILITY_VALIDATED`, but unlike Android
+  it does not see past a captive portal.
+- **Downloads:** `IosImageDownloader` saves to Photos with *add-only* access. The
+  app can add a cat to the library but never read what is already there. The
+  system asks on the first download, using the app's
+  `NSPhotoLibraryAddUsageDescription` text. A refusal throws, and the screen
+  reports it like any other failed download.
+- **Theme and logging:** there is no dynamic color, and nothing to set on the
+  status bar, whose default style already follows the system's light or dark
+  mode, as the theme does. Logging goes to standard output, which Xcode's
+  console shows. It does not go to `NSLog`: a Kotlin `String` passed through
+  `NSLog`'s C varargs is not bridged to an `NSString`, and `NSLog` crashed
+  formatting it. `ErrorMapperIosTest` found that on its first run. In the app it
+  would have crashed on the first error it logged.
+
+`:shared` builds a static `Shared` framework. It exposes `MainViewController()`,
+which wraps `CatsApp()` in a `UIViewController` for Swift to host.
+
+**Consequences.**
+
+- **Coil is held at 3.4.0.** From 3.5.0, Coil's iOS klibs are built by Kotlin
+  2.4, and Kotlin 2.3.21's native compiler refuses a newer klib ABI outright. The
+  JVM tolerates newer metadata, which is why Android and desktop never showed it.
+  Every other iOS dependency is built by Kotlin 2.3 or older.
+- **Coil and Compose use different Skiko versions.** Coil 3.4.0 was built against
+  Skiko 0.9.22.2, and Compose Multiplatform 1.12.1 brings 0.150.1. The framework
+  links with no partial-linkage warnings, so every Skiko call Coil makes
+  resolved. Whether images actually decode on iOS is for the app to show.
+- **One type inference differed on native.** `listOf(CatsListNavKey,
+  FavoriteCatsNavKey)` was `List<NavKey>` on the JVM and `List<Any>` on native,
+  so the type is now written out.
+- **On a Mac, `./gradlew verify` builds and tests iOS too,** through each
+  module's `check`. The CI `ios` job runs the iOS tests on a simulator, compiles
+  the device target and links the framework.
+- **Two test classes run on iOS:**
+  - `CatDatabaseIosTest` covers the real database, as `CatDatabaseJvmTest` does
+    on desktop.
+  - `ErrorMapperIosTest` covers the failures only URLSession produces.
+
+  The rest of the suite uses JUnit and Truth, so it runs on the JVM targets
+  only. Moving it to `commonTest` is listed under "After 3.0.0" in the roadmap.
+
+**What this does *not* claim.** Nothing here has run as an app. The framework
+links, and the iOS tests pass on a simulator. The Xcode project, Koin startup on
+iOS, Coil's network fetcher and the Photos prompt are the next step.
+
+**Review when:** Kotlin moves to 2.4. Coil can then return to its current
+release, and the Skiko mismatch goes with it.
+
+---
+
+## ADR-0040
+
+### The iOS app: a thin Xcode project around `CatsApp()`
+
+**Accepted** · 2026-09-24
+
+**Context.** [ADR-0039](#adr-0039) left a `Shared` framework that links and
+tests that pass on a simulator, with nothing that a person could open. iOS
+needs an Xcode project to be an app at all. The goal for all three platforms
+is the same: a launcher and nothing else, with every screen in `commonMain`.
+
+**Decision.** `iosApp/` is that launcher.
+
+- **Swift does as little as it can.** `iOSApp.swift` calls `startCatsApp()` once,
+  and `ContentView` hosts `MainViewController()` edge to edge, since Compose
+  reads the safe area itself. The rest of the startup lives in Kotlin
+  (`:shared`'s `iosMain`), in the same shape as Android's `App` and desktop's
+  `main()`:
+  - Koin starts with `appModules`.
+  - Coil's singleton loader fetches over Ktor, using a client of its own on the
+    graph's one URLSession engine. That is iOS's form of
+    [ADR-0030](#adr-0030)'s shared client. The API's own client is not reused,
+    because it resolves paths against TheCatAPI and throws on any non-2xx
+    response.
+- **Gradle builds the framework from inside Xcode.** A build phase runs
+  `:shared:embedAndSignAppleFrameworkForXcode`, which also copies the Compose
+  resources into the app. It calls `bash ./gradlew`, because the wrapper is
+  committed without its executable bit.
+- **The project is written by hand, and small.** It uses Xcode 16+'s
+  synchronized folders, so adding a Swift file does not touch
+  `project.pbxproj`. There is one target, one shared scheme and one
+  `Config.xcconfig`.
+- **Signing stays out of git.** The Team ID lives in a git-ignored
+  `Config.local.xcconfig`, optionally included by the committed config. The
+  bundle ID is suffixed with the team, because a bundle ID belongs to the first
+  team that registers it, and a free Apple ID cannot take one someone else
+  already holds.
+- **The version is the same one as everywhere else.** A last build phase stamps
+  `catslist.version` from `gradle.properties` into the built `Info.plist`
+  before signing, so iOS adds no second number to keep in step
+  ([ADR-0021](#adr-0021)).
+- **The icon** is the macOS icon with its transparent corners filled in the
+  launcher background (`#6650A4`). iOS wants a full-bleed opaque square and
+  applies its own mask.
+- **`Info.plist`:**
+  - `NSPhotoLibraryAddUsageDescription`, the text of ADR-0039's add-only
+    Photos prompt.
+  - `CADisableMinimumFrameDurationOnPhone`, so Compose can draw at 120 Hz on
+    ProMotion screens.
+  - Every orientation except upside-down on iPhone, since
+    [ADR-0038](#adr-0038)'s grid is built for landscape too.
+
+**Consequences.**
+
+- **Where it has run.** Built, installed and launched on the simulator and on an
+  iPhone 11 running iOS 27.0, from Xcode 26.0.1. On the phone the feed loads
+  and its images decode, which answers ADR-0039's open question about Coil and
+  Skiko.
+- **CI builds the app too.** The `ios` job adds an unsigned `xcodebuild` for the
+  simulator, so a broken project or Swift file fails a pull request. Signing is
+  the one step CI cannot check, because a runner has no Apple ID. Simulator
+  builds exclude `x86_64`, because there is no `iosX64` target (ADR-0039). A
+  generic simulator destination builds for Intel as well, and failed on exactly
+  that in the first CI run.
+- **Deployment target: iOS 16.** The linker warns that Compose's bundled ICU data
+  is marked for 18.5. It is a data object with no code in it.
+- **Two network failures seen while testing were the network, not the app:**
+  - On this Mac, the simulator could not resolve TheCatAPI through a VPN that
+    answers DNS with fake `198.18.x` addresses.
+  - On the phone, the first request timed out on a direct connection.
+
+  Both were classified as ADR-0032 intends: the first as `Unreachable` (the
+  path was satisfied and the host was not found), the second as `Timeout`.
+
+**Alternatives rejected.** XcodeGen or Tuist, which generate the project from a
+spec. For one target that no one edits often, that is one more tool to install
+on every Mac and in CI, and synchronized folders already keep the hand-written
+file from churning.
+
+---
+
+## ADR-0041
+
+### 3.0.0: three platforms, three ways to ship
+
+**Accepted** · 2026-09-24
+
+**Context.** 3.0.0 is the first release since this repository forked from
+`CatsListApplication` at 2.2.0 ([ADR-0028](#adr-0028)). Nothing reached `main`
+in between. Replacing libraries and moving modules to KMP changed nothing a user
+could see, so there was nothing to release until the app ran on new platforms.
+It now runs on three, and each has a different answer to "how does someone get
+it".
+
+**Decision.** One version, 3.0.0, from `catslist.version`: Android derives
+`versionCode` from it, the desktop installers carry it as it is, and the iOS build
+stamps it into `Info.plist` ([ADR-0040](#adr-0040)). The major version is for
+the platforms, not for any change to the app's behavior, which is the same on
+all three.
+
+- **Android:** the release APK, R8-minified and attached to the GitHub release,
+  as before.
+- **Desktop:** MSI, DMG and DEB, built on each OS's runner by `release.yml`, and
+  unsigned. Signing needs a code-signing certificate and an Apple Developer ID,
+  and this project has neither, so SmartScreen and Gatekeeper warn on first
+  launch.
+- **iOS: build from source.** A free Apple ID can put the app on its owner's
+  phone for seven days. It cannot produce a file anyone else can install, and
+  TestFlight and the App Store both need the paid program. The README says so,
+  rather than implying a download that does not exist.
+
+**Consequences.** The release was run by hand on each platform before tagging:
+- Android: `verifyOnDevice` on an emulator
+- Windows: the desktop app
+- iOS: the simulator, and an iPhone 11 on iOS 27, where feed, favorites across
+  a restart, and the loading skeleton were all checked
+
+The iPhone run found one fix, which went in before the release: tab switches
+slid like a push on iOS (#23).
+
+**Review when:** there is a paid Apple Developer account. TestFlight would give
+iOS a download link like the other two platforms, and the same ID would let the
+DMG be signed.

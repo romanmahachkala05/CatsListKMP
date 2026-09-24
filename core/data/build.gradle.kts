@@ -1,14 +1,84 @@
 plugins {
-    id("catslist.android.library")
+    id("catslist.kmp.android.library")
     id("catslist.koin")
-    // Applied here now: catslist.koin brings no KSP, and Room's compiler needs it.
     alias(libs.plugins.ksp)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.androidx.room)
 }
 
-android {
-    namespace = "com.example.catslist.core.data"
+kotlin {
+    android {
+        namespace = "com.example.catslist.core.data"
+    }
+
+    sourceSets {
+        commonMain.dependencies {
+            implementation(project(":core:model"))
+            // `api`: CatRepository, ImageDownloader and the use cases are this module's public
+            // surface as far as every consumer is concerned.
+            api(project(":core:domain"))
+
+            implementation(libs.kotlinx.collections.immutable)
+            implementation(libs.kotlinx.serialization.json)
+
+            implementation(libs.ktor.client.core)
+            implementation(libs.ktor.client.content.negotiation)
+            implementation(libs.ktor.serialization.kotlinx.json)
+
+            implementation(libs.androidx.room.runtime)
+            implementation(libs.androidx.sqlite.bundled)
+        }
+
+        // OkHttp is JVM-only, so the client the engine and Coil share (ADR-0030) is built
+        // here rather than in commonMain; iOS drives URLSession through the Darwin engine.
+        named("jvmAndAndroidMain").dependencies {
+            implementation(libs.okhttp)
+            implementation(libs.ktor.client.okhttp)
+        }
+
+        androidMain.dependencies {
+            implementation(libs.androidx.core.ktx)
+        }
+
+        iosMain.dependencies {
+            implementation(libs.ktor.client.darwin)
+        }
+
+        commonTest.dependencies {
+            implementation(libs.ktor.client.mock)
+            implementation(libs.kotlinx.coroutines.test)
+        }
+
+        // JUnit4 and Truth are JVM-only, so the existing suite lives in the per-target test
+        // source sets rather than commonTest (ADR-0028).
+        androidHostTest.dependencies {
+            implementation(project(":core:testing"))
+            implementation(libs.junit)
+            implementation(libs.truth)
+            implementation(libs.androidx.paging.testing)
+        }
+
+        jvmTest.dependencies {
+            implementation(libs.junit)
+            implementation(libs.truth)
+            implementation(libs.androidx.paging.testing)
+        }
+
+        // The real database and ErrorMapper on iOS, the way jvmTest checks them on desktop.
+        iosTest.dependencies {
+            implementation(project(":core:testing"))
+            implementation(libs.kotlin.test)
+        }
+
+        androidDeviceTest.dependencies {
+            // FakeNetworkMonitor, so an instrumented test can build a real ErrorMapper.
+            implementation(project(":core:testing"))
+            implementation(libs.androidx.junit)
+            implementation(libs.androidx.espresso.core)
+            implementation(libs.androidx.room.testing)
+            implementation(libs.androidx.paging.testing)
+        }
+    }
 }
 
 room {
@@ -18,33 +88,9 @@ room {
 }
 
 dependencies {
-    implementation(project(":core:model"))
-
-    implementation(libs.androidx.core.ktx)
-
-    implementation(libs.kotlinx.collections.immutable)
-    implementation(libs.kotlinx.serialization.json)
-    implementation(libs.retrofit)
-    implementation(libs.retrofit.converter.kotlinx.serialization)
-    implementation(libs.okhttp)
-
-    implementation(libs.androidx.room.runtime)
-    implementation(libs.androidx.room.ktx)
-    implementation(libs.androidx.room.paging)
-    ksp(libs.androidx.room.compiler)
-
-    // `api`, not `implementation`: PagingData is part of CatRepository's return type, so
-    // every consumer needs it on the classpath.
-    api(libs.androidx.paging.runtime)
-
-    testImplementation(project(":core:testing"))
-    testImplementation(libs.junit)
-    testImplementation(libs.kotlinx.coroutines.test)
-    testImplementation(libs.truth)
-    testImplementation(libs.androidx.paging.testing)
-
-    androidTestImplementation(libs.androidx.junit)
-    androidTestImplementation(libs.androidx.espresso.core)
-    androidTestImplementation(libs.androidx.room.testing)
-    androidTestImplementation(libs.androidx.paging.testing)
+    // Room's processor runs once per target that compiles the database.
+    add("kspAndroid", libs.androidx.room.compiler)
+    add("kspJvm", libs.androidx.room.compiler)
+    add("kspIosArm64", libs.androidx.room.compiler)
+    add("kspIosSimulatorArm64", libs.androidx.room.compiler)
 }

@@ -1,6 +1,0 @@
-<resources>
-    <!-- Shared by every screen's Snackbar feedback for favoriting/downloading a cat. -->
-    <string name="common_favorite_failed_message">Couldn\'t update favorites. Try again.</string>
-    <string name="common_download_started_message">Downloading started</string>
-    <string name="common_download_failed_message">Couldn\'t download this cat image. Try again.</string>
-</resources>

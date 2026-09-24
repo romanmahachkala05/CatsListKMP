@@ -15,6 +15,8 @@ dependencies {
     // artifacts themselves on the classpath, not just an `id(...)`/`alias(...)` reference.
     compileOnly(libs.android.gradlePlugin)
     compileOnly(libs.kotlin.gradlePlugin)
+    compileOnly(libs.compose.gradlePlugin)
+    compileOnly(libs.compose.multiplatform.gradlePlugin)
     compileOnly(libs.ktlint.gradlePlugin)
     compileOnly(libs.detekt.gradlePlugin)
 }
@@ -29,6 +31,14 @@ gradlePlugin {
             id = "catslist.jvm.library"
             implementationClass = "JvmLibraryConventionPlugin"
         }
+        register("kmpLibrary") {
+            id = "catslist.kmp.library"
+            implementationClass = "KmpLibraryConventionPlugin"
+        }
+        register("kmpAndroidLibrary") {
+            id = "catslist.kmp.android.library"
+            implementationClass = "KmpAndroidLibraryConventionPlugin"
+        }
         register("koin") {
             id = "catslist.koin"
             implementationClass = "KoinConventionPlugin"
@@ -36,6 +46,10 @@ gradlePlugin {
         register("compose") {
             id = "catslist.compose"
             implementationClass = "ComposeConventionPlugin"
+        }
+        register("kmpCompose") {
+            id = "catslist.kmp.compose"
+            implementationClass = "KmpComposeConventionPlugin"
         }
         register("quality") {
             id = "catslist.quality"

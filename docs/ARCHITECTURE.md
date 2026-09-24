@@ -21,7 +21,7 @@ before changing the architecture. This file is the *what*; `AGENTS.md` is the
 
 Known-good set (as of 2026‑09 — verify current): Kotlin 2.4.x, KSP 2.3.x,
 AGP 9.x, Gradle 9.7.x, Compose BOM 2026.08.x, Koin 4.1.x,
-Room 2.8.x, androidx.navigation3 1.1.x,
+Room 2.8.x, Ktor 3.6.x, androidx.navigation3 1.1.x,
 lifecycle 2.11.x, coroutines 1.11.x, kotlinx-serialization 1.11.x,
 kotlinx.collections.immutable (latest), Truth 1.4.x.
 
@@ -43,15 +43,28 @@ none of the ceremony. Split when a real trigger shows up — see ADR-0001's
 
 Module graph (arrows = "depends on"):
 
-    :app  ──▶ :feature:feed, :feature:favorites
-      │          └──▶ :core:model, :core:data, :core:ui, :core:designsystem
-      └──▶ :core:model, :core:data, :core:ui, :core:designsystem
+    :app, :desktopApp, iosApp/ ──▶ :shared                  (:desktopApp: jvm only; iosApp/: Xcode, links the Shared framework)
+    :shared  ──▶ :feature:feed, :feature:favorites          (multiplatform: common + android + jvm + ios)
+      │          └──▶ :core:domain, :core:ui, :core:designsystem
+      └──▶ :core:data, :core:ui, :core:designsystem
 
-    :core:data          ──▶ :core:model                    (pure Kotlin, no Android)
-    :core:model         ──▶ (nothing)                      (pure Kotlin)
-    :core:ui            ──▶ :core:model, :core:data
-    :core:designsystem  ──▶ :core:model, :core:ui
-    :core:testing       ──▶ :core:model, :core:data, :core:ui  (test-only; nothing depends on it in `main`)
+    :core:data          ──▶ :core:model, :core:domain      (multiplatform: common + android + jvm + ios)
+    :core:domain        ──▶ :core:model                    (multiplatform: common + jvm + ios)
+    :core:model         ──▶ (nothing)                      (multiplatform: common + jvm + ios)
+    :core:ui            ──▶ :core:domain                    (multiplatform: common + android + jvm + ios)
+    :core:designsystem  ──▶ :core:model, :core:ui          (multiplatform: common + android + jvm + ios)
+    :core:testing       ──▶ :core:model, :core:data, :core:ui  (multiplatform; test-only, nothing depends on it in `main`)
+
+Every module but `:app` is Kotlin Multiplatform, and `:app` is only the Android
+entry point. The UI moved to Compose Multiplatform one module at a time,
+bottom-up (ADR-0037). See ADR-0028 for the migration order and ADR-0029 for what
+`:core:data`'s split looks like.
+
+Source sets in a multiplatform module are `commonMain` plus `androidMain`/`jvmMain`/`iosMain`,
+with `jvmAndAndroidMain` for what only the two JVM-based targets share (OkHttp, JUnit rules).
+Its tests are `commonTest`, `androidHostTest` (JVM, no device), `androidDeviceTest`
+(instrumented), `jvmTest` and `iosTest` (on a simulator, Mac only) — AGP's multiplatform
+plugin and Kotlin's default hierarchy name them, not us (ADR-0039).
 
 Rules:
 
@@ -69,10 +82,17 @@ Rules:
   compiler error, not a warning), so the public `XxxScreen(modifier, contentPadding)`
   delegates to a `private` overload that takes the `internal` ViewModel; that
   private overload is where `koinViewModel()`'s default lives.
-- `:app` is the **composition root only**: `Application`, `MainActivity`, the
-  `NavDisplay` and its back stack. No screens, ViewModels, use cases, entities
-  or feature-specific DI modules.
-- `:core:data` owns the repository, the API service, Room, and the use cases
+- `:shared` is the **root UI**: `CatsApp()`, `CatsNavDisplay` and its back
+  stacks, and `appModules`, the Koin module list. `:app` is the Android entry
+  point only: `Application` (starts Koin, builds Coil's loader) and
+  `MainActivity`; `:desktopApp` is the same for desktop, in one `main()`. Neither holds screens, ViewModels, use cases or
+  feature-specific DI modules.
+- `:core:domain` owns the use cases, `CatRepository` and `ImageDownloader` —
+  the ports, with no implementation and no platform. `:core:data` implements them.
+- `:core:data` owns the repository implementation, the API service and Room. It
+  splits on three seams only — where the database file lives, how the HTTP engine
+  is constructed, and how an image is downloaded (ADR-0029). Anything else that
+  reaches for a platform API belongs behind one of those, not in a fourth
   that wrap the repository — this project does not split those into separate
   domain/data/database modules; see ADR-0022's **Alternatives rejected** for
   why a finer split was not worth it at two features.
@@ -89,8 +109,9 @@ Rules:
   Only each file's own generated `R` class reference changes when it crosses a
   module boundary.
 - Shared build config lives in the `build-logic` composite build as
-  **convention plugins**: `catslist.jvm.library` and `catslist.android.library`
-  are the two bases; `catslist.compose`, `catslist.koin`, and `catslist.quality`
+  **convention plugins**: `catslist.kmp.library` and `catslist.android.library`
+  are the two bases (`catslist.jvm.library` remains for any module not yet
+  moved to `commonMain`); `catslist.compose`, `catslist.koin`, and `catslist.quality`
   (ktlint + detekt) are additive, applied only by the modules that actually
   need them. Never copy an `android { }` block between modules.
 - **A module that declares a `@Serializable` type (a feature module's
@@ -353,7 +374,7 @@ load; `PagingData` is exposed alongside `state` rather than inside it, because
   resolves.
 - **domain carries no DI at all.** Use cases are plain classes with plain
   constructors; `dataModule` is what knows how to build them.
-- `single` for what was `@Singleton` (repository, database, Retrofit, the
+- `single` for what was `@Singleton` (repository, database, the `HttpClient`, the
   SnackbarNotifier); `factory` for everything else.
 - Screen collaborators that must **share** a StateHolder (ViewModel + ErrorHandler)
   are constructed **inside the `viewModel { }` lambda** and passed to both. This is
@@ -376,6 +397,24 @@ load; `PagingData` is exposed alongside `state` rather than inside it, because
 - `@Immutable` / `@Stable` on `State` and every UI model type. Use
   `ImmutableList` / `persistentListOf()` (kotlinx.collections.immutable) in state,
   never a raw `List` you rebuild each emission.
+- **Strong skipping is on, so most manual annotation is obsolete — but not all of
+  it.** Two cases the compiler still cannot work out on its own, and neither is
+  fixed by an annotation on the call site:
+  - a **sealed interface** used as a parameter type. An implementation the
+    compiler has not seen could be anything, so it is unstable unless the
+    interface itself is `@Immutable` — and that promise is only true if every
+    case is really immutable (`UiText.Resource` holds an `ImmutableList`, not a
+    `List`, for exactly this reason).
+  - a class from a module the **Compose compiler does not compile**
+    (`:core:model`) or from a **third-party library**. Nothing there carries
+    stability metadata, so it is assumed unstable. These are declared in
+    [`config/compose-stability.conf`](../config/compose-stability.conf), which
+    every Compose module points at — never by moving the class or wrapping it.
+- **Do not guess at any of this — measure it.** `./gradlew assembleRelease
+  -Pcatslist.composeMetrics` writes the compiler's own stability and skippability
+  reports to each module's `build/compose-metrics/`. A parameter listed
+  `unstable` is compared by identity and its composable never skips. See
+  [ADR-0033](DECISIONS.md#adr-0033).
 - **Design system** lives in `core:designsystem`: theme + tokens + reusable
   components (buttons, cells, loaders, error block, empty state, dialog host).
   Screens compose these; they don't hand-roll spacing/colors. `core:ui` is a
@@ -392,10 +431,13 @@ load; `PagingData` is exposed alongside `state` rather than inside it, because
       @Immutable
       sealed interface UiText {
           data class Raw(val value: String) : UiText
-          data class Resource(@StringRes val id: Int, val args: List<Any> = emptyList()) : UiText
-          data class Plural(@PluralsRes val id: Int, val count: Int) : UiText
+          data class Resource(val id: StringResource, val args: ImmutableList<Any>) : UiText
       }
       @Composable fun UiText.resolve(): String = when (this) { … }
+      suspend fun UiText.load(): String = when (this) { … }  // outside composition
+
+  Strings are Compose resources (`src/commonMain/composeResources/values/strings.xml`),
+  read through each module's generated `Res` (ADR-0037).
 
 - ViewModels / StateHolders / mappers **never** call `context.getString` — they
   put a `UiText` in state.

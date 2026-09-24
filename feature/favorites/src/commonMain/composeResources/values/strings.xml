@@ -1,0 +1,4 @@
+<resources>
+    <string name="favoritecats_error_loading_favorites">Couldn't load your favorites. Try again.</string>
+    <string name="favoritecats_empty_message">Favorite Cats list is empty</string>
+</resources>

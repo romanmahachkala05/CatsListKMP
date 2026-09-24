@@ -5,7 +5,6 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     // Still needed after CatDto moved out: the NavKeys are @Serializable too, and without
     // the plugin that fails at runtime rather than at compile time.
-    alias(libs.plugins.kotlin.serialization)
     id("catslist.quality")
 }
 
@@ -23,11 +22,11 @@ fun releaseSigningValue(key: String): String? =
 val hasReleaseSigning = listOf("storeFile", "storePassword", "keyAlias", "keyPassword")
     .all { !releaseSigningValue(it).isNullOrBlank() }
 
-// versionCode is derived from the name, so the two cannot drift apart. Minor and patch are
-// allowed 0-99 each.
-val versionMajor = 2
-val versionMinor = 2
-val versionPatch = 0
+// The version lives in gradle.properties, shared with the desktop installers. versionCode is
+// derived from it, so the two cannot drift apart. Minor and patch are allowed 0-99 each.
+val (versionMajor, versionMinor, versionPatch) = providers.gradleProperty("catslist.version").get()
+    .split('.')
+    .map(String::toInt)
 
 android {
     namespace = "com.example.catslist"
@@ -56,7 +55,8 @@ android {
         release {
             // Null with no keystore, producing an unsigned APK rather than a failed build.
             signingConfig = signingConfigs.findByName("release")
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
@@ -77,6 +77,12 @@ android {
     }
 }
 
+// :app configures Compose directly rather than through `catslist.compose`, which is an Android
+// *library* convention — so the shared stability config is pointed at by hand here (ADR-0029).
+composeCompiler {
+    stabilityConfigurationFiles.add(rootProject.layout.projectDirectory.file("config/compose-stability.conf"))
+}
+
 java {
     toolchain {
         languageVersion.set(JavaLanguageVersion.of(17))
@@ -84,32 +90,23 @@ java {
 }
 
 dependencies {
-    implementation(project(":core:model"))
-    implementation(project(":core:data"))
-    implementation(project(":core:ui"))
-    implementation(project(":core:designsystem"))
-    implementation(project(":feature:feed"))
-    implementation(project(":feature:favorites"))
+    // The whole UI and the Koin module list; this module is only the Android entry point.
+    implementation(project(":shared"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
-    // Compose
     implementation(platform(libs.androidx.compose.bom))
-    implementation(libs.androidx.compose.ui)
-    implementation(libs.androidx.compose.ui.graphics)
-    implementation(libs.androidx.compose.ui.tooling.preview)
-    implementation(libs.androidx.compose.material3)
-    implementation(libs.androidx.compose.material.icons.core)
     implementation(libs.androidx.activity.compose)
-    debugImplementation(libs.androidx.compose.ui.tooling)
-    // Navigation 3
-    implementation(libs.androidx.navigation3.runtime)
-    implementation(libs.androidx.navigation3.ui)
-    implementation(libs.androidx.lifecycle.viewmodel.navigation3)
-    // Koin — App assembles the module graph; the ViewModel definitions themselves live
-    // in the feature modules.
+    // Koin — App starts it; the module list and every definition live in :shared and below.
     implementation(platform(libs.koin.bom))
     implementation(libs.koin.android)
+    // App builds Coil's singleton loader over the one OkHttpClient the Koin graph provides,
+    // so the composition root needs all three types (ADR-0030).
+    implementation(libs.okhttp)
+    implementation(platform(libs.coil.bom))
+    implementation(libs.coil)
+    implementation(libs.coil.core)
+    implementation(libs.coil.network.okhttp)
 
     testImplementation(project(":core:testing"))
     testImplementation(libs.junit)

@@ -7,18 +7,37 @@
 # Rules bent for a whole category of code live here. One-off exceptions are suppressed at
 # the call site with a comment instead, so they stay visible where someone will read them.
 
+# detekt's defaults already exempt test sources from the naming and magic-number rules, but
+# the list it ships predates AGP's multiplatform source sets — `androidHostTest` and
+# `androidDeviceTest` are not in it, so backtick test names started failing the moment
+# :core:data moved to KMP. Restated in full here because setting `excludes` replaces the
+# default list rather than adding to it.
 naming:
   FunctionNaming:
     # @Composable functions are PascalCase by the official Compose naming convention.
     # Without this, detekt wants every composable in the project renamed.
     ignoreAnnotated: ['Composable']
+    excludes: &testSources
+      - '**/test/**'
+      - '**/androidTest/**'
+      - '**/commonTest/**'
+      - '**/jvmTest/**'
+      - '**/androidHostTest/**'
+      - '**/androidDeviceTest/**'
 
 complexity:
   LongParameterList:
     # Constructor injection lists a class's collaborators; that is the pattern working, not
     # a smell. A ViewModel that genuinely does too much is caught by reading it, not by
     # counting its parameters — CatsListViewModel's seven are all delegated to directly.
-    ignoreAnnotated: ['HiltViewModel']
+    # Was keyed to @HiltViewModel; Koin ViewModels carry no annotation, so the threshold is
+    # raised instead (ADR-0026).
+    allowedConstructorParameters: 8
+
+  TooManyFunctions:
+    # One test method per case is the point, not a smell — same rationale as MagicNumber
+    # below, and the same fix for the same reason (ADR-0036).
+    excludes: *testSources
 
 style:
   MagicNumber:
@@ -26,6 +45,7 @@ style:
     # constant would just rename it twice. Same for `Migration(2, 3)`, where the numbers
     # are the schema versions, and `RoundedCornerShape(50)` behind a named `BAR_SHAPE`.
     ignorePropertyDeclaration: true
+    excludes: *testSources
 
   UnusedPrivateFunction:
     # @Preview composables are called by the IDE renderer, which detekt cannot see.

@@ -1,3 +1,3 @@
 plugins {
-    id("catslist.jvm.library")
+    id("catslist.kmp.library")
 }
